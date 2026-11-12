@@ -867,3 +867,200 @@
     display: none;
   }
 }
+
+/* ---- GAME OVER: the title says it; the line under it explains what happened ---------------------------------------- */
+
+/* "Something went wrong." stays as the dialog's name for screen readers, but is not shown */
+.media-skin.coil.coil.coil .media-dialog-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* GAME OVER on one line, sized to the panel */
+.media-skin.coil.coil.coil .media-dialog-popup::before {
+  white-space: nowrap;
+  font-size: clamp(30px, 7cqi, 60px);
+}
+.media-skin.coil.coil.coil .media-dialog-popup::before {
+  font-size: clamp(30px, 6cqi, 45px);
+  padding: 0;
+  box-shadow: none;
+  border: 0;
+  background: none;
+}
+
+/* ---- GAME OVER, short: the reason in one line, details behind the "i" key -----------------------------------------
+   Everything in the panel is sized from one base, so a phone shows the same panel, only smaller. */
+
+.media-skin.coil.coil.coil .media-dialog-popup {
+  --go: clamp(10px, 2.1cqi, 15px);
+  gap: calc(var(--go) * 0.9);
+  padding: calc(var(--go) * 1.4) calc(var(--go) * 1.8) calc(var(--go) * 1.6);
+  width: auto;
+  max-width: calc(100% - 24px);
+}
+.media-skin.coil.coil.coil .media-dialog-popup::before {
+  font-size: calc(var(--go) * 3);
+  letter-spacing: 0.12em;
+}
+.media-skin.coil.coil.coil .coil-err-reason {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--go) * 0.6);
+  margin: 0;
+  font-size: calc(var(--go) * 1.333);
+  line-height: 1;
+  letter-spacing: 0.1em;
+  color: var(--coil-gold);
+}
+.media-skin.coil.coil.coil .coil-err-info {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0 0 2px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--coil-bone);
+  background: var(--coil-panel);
+  border: 2px solid var(--coil-edge);
+  box-shadow: 0 3px 0 #000;
+}
+/* a comfortable target round the small key */
+.media-skin.coil.coil.coil .coil-err-info::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+.media-skin.coil.coil.coil .coil-err-info:is(:hover, :focus-visible, [aria-expanded='true']) {
+  color: var(--coil-ink);
+  background: var(--coil-gold);
+}
+.media-skin.coil.coil.coil .coil-err-info:focus-visible {
+  outline: 3px solid var(--coil-bone);
+  outline-offset: 2px;
+}
+
+/* the full message: a small plate that opens over the panel */
+.media-skin.coil.coil.coil .coil-err-details {
+  position: absolute;
+  left: 50%;
+  top: calc(100% - var(--go) * 0.4);
+  z-index: 2;
+  width: max-content;
+  max-width: min(320px, 80cqi);
+  margin: 0;
+  padding: 6px 10px 7px;
+  translate: -50% 0;
+  font-size: 15px;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--coil-bone);
+  background: var(--coil-ink);
+  border: 2px solid var(--coil-bone);
+  box-shadow: 4px 4px 0 #000;
+  visibility: hidden;
+  opacity: 0;
+}
+.media-skin.coil.coil.coil
+  .media-dialog-popup:has(.coil-err-info:is(:hover, :focus-visible, [aria-expanded='true']))
+  .coil-err-details {
+  visibility: visible;
+  opacity: 1;
+}
+
+.media-skin.coil.coil.coil .media-dialog-close {
+  min-height: 44px;
+  padding: calc(var(--go) * 0.4) calc(var(--go) * 1.4) calc(var(--go) * 0.55);
+  font-size: calc(var(--go) * 2);
+}
+
+/* ---- GAME OVER, round 2: one proportion everywhere -----------------------------------------------------------------
+   The panel is a fixed fraction of the player's width, and everything inside is a fixed fraction of the panel, so a
+   phone shows exactly the desktop panel, scaled down (to a readable minimum). */
+
+.media-skin.coil.coil.coil .media-dialog-popup {
+  --go: clamp(9px, 1.8cqi, 22px);
+  overflow: visible;
+  width: calc(var(--go) * 17);
+  max-width: calc(100% - 24px);
+  gap: calc(var(--go) * 0.8);
+  padding: calc(var(--go) * 1.2) calc(var(--go) * 1.2) calc(var(--go) * 1.4);
+}
+.media-skin.coil.coil.coil .media-dialog-popup::before {
+  font-size: calc(var(--go) * 2.8);
+}
+.media-skin.coil.coil.coil .coil-err-reason {
+  font-size: calc(var(--go) * 1.2);
+  white-space: nowrap;
+  gap: calc(var(--go) * 0.5);
+}
+/* the "i": the height of the text beside it, quiet until it is used */
+.media-skin.coil.coil.coil .coil-err-info {
+  width: 1.1em;
+  height: 1.1em;
+  padding: 0;
+  font-size: 1em;
+  line-height: 1;
+  color: rgb(236 232 223 / 0.6);
+  background: none;
+  border: 1px solid rgb(236 232 223 / 0.45);
+  box-shadow: none;
+}
+.media-skin.coil.coil.coil .coil-err-info::before {
+  inset: -12px;
+}
+.media-skin.coil.coil.coil .coil-err-info:is(:hover, :focus-visible, [aria-expanded='true']) {
+  color: var(--coil-bone);
+  background: none;
+  border-color: var(--coil-bone);
+}
+.media-skin.coil.coil.coil .coil-err-details {
+  top: calc(100% + 8px);
+  white-space: normal;
+  font-size: clamp(12px, calc(var(--go) * 0.9), 15px);
+  letter-spacing: 0;
+  color: var(--coil-bone);
+}
+.media-skin.coil.coil.coil .media-dialog-popup:has(.coil-err-info:is(:hover, :focus-visible, [aria-expanded='true'])) .coil-err-details {
+  visibility: visible;
+  opacity: 1;
+}
+.media-skin.coil.coil.coil .media-dialog-close {
+  min-height: max(44px, calc(var(--go) * 2.6));
+  padding: 0 calc(var(--go) * 1.2);
+  font-size: calc(var(--go) * 1.6);
+}
+/* the button keeps its proportion; on small panels its hit area grows round it instead, to 44 px */
+.media-skin.coil.coil.coil .media-dialog-close {
+  position: relative;
+  min-height: 0;
+  height: calc(var(--go) * 2.6);
+}
+.media-skin.coil.coil.coil .media-dialog-close::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((var(--go) * 2.6 - 44px) / 2)) 0;
+}
+
+/* GAME OVER: no details key; the full message stays for screen readers only */
+.media-skin.coil.coil.coil .coil-err-details,
+.media-skin.coil.coil.coil .media-dialog-popup:has(.coil-err-info) .coil-err-details {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  visibility: visible;
+  opacity: 1;
+}
