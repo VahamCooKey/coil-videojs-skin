@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 96 64" role="img" aria-labelledby="asset-title">
+  <title id="asset-title">A / Obsidian wedge / four poses</title>
+  <desc>COIL. Original hand-authored vector artwork. Near-black sunbeam snake; colour is reflected light.</desc>
+  <defs>
+    <linearGradient id="body-fill" gradientUnits="userSpaceOnUse" x1="0" y1="20" x2="0" y2="44">
+      <stop offset="0" stop-color="#5F6C7A" style="stop-color:var(--coil-scale-2, #5F6C7A)" />
+      <stop offset="0.43" stop-color="#2B323C" style="stop-color:var(--coil-scale-1, #2B323C)" />
+      <stop offset="1" stop-color="#1B2027" />
+    </linearGradient>
+    <linearGradient id="iridescence" x1="0" y1="0.25" x2="1" y2="0.7">
+      <stop offset="0" stop-color="#3FD1C6" />
+      <stop offset="0.52" stop-color="#8B6CFF" />
+      <stop offset="1" stop-color="#D69A4A" />
+    </linearGradient>
+  </defs>
+  <style type="text/css">.pose { display:none; }
+#pose-tongue { display:inline !important; }
+#pose-strain:target { display:inline; }
+#pose-strain:target ~ #pose-rest { display:none; }
+#pose-strike:target { display:inline; }
+#pose-strike:target ~ #pose-rest { display:none; }
+#pose-tongue:target { display:inline; }
+#pose-tongue:target ~ #pose-rest { display:none; }</style>
+  <!-- Default is rest. URL #pose-strike etc. previews a pose; integration may toggle display. -->
+  <g id="head">
+    <g id="pose-strain" class="pose">
+      <!-- Independently rotatable lower jaw. -->
+      <g id="jaw-strain" class="jaw">
+        <path d="M29 34 C46 34 63 35 78 33 L76 39 C65 43 48 45 35 41 L28 39 Z" fill="url(#body-fill)" />
+        <path d="M35 39 Q54 43 73 37" fill="none" stroke="#65717A" stroke-width="0.7" opacity="0.34" />
+      </g>
+      <!-- Skull and flat 24-unit neck socket: x=0, y=20..44. -->
+      <path class="skull" d="M0 20 C14 20 17 13 30 13 L45 15 C58 18 66 23 75 27 L80 31 L78 35 L58 37 L35 36 C22 37 13 44 0 44 Z" fill="url(#body-fill)" />
+      <path id="sheen-strain" class="sheen" d="M0 21 C15 21 20 15 30 15 L45 17 Q60 20 73 28 L62 26 L42 21 L27 20 Q14 25 0 25 Z" fill="url(#iridescence)" opacity="0.45" />
+      <path class="crown-rim" d="M0 21 C15 21 20 15 30 15 L45 17 Q60 20 73 28 L62 26 L42 21 L27 20 Q14 25 0 25 Z" fill="none" stroke="url(#iridescence)" stroke-width="0.45" opacity="0.4" />
+      <!-- Large, quiet head plates; no illustrative hatch noise. -->
+      <path class="head-plates" d="M19 22 L29 20 L39 23 L35 30 L22 31 Z M39 23 L46 19 L55 22 L54 28 L43 30 Z M22 31 L35 30 L39 35 M43 30 L52 33 L61 30 L69 33" fill="none" stroke="#818B95" stroke-width="0.55" opacity="0.18" />
+      <path class="cheek" d="M14 36 L28 30 L37 32 M39 34 L52 32" fill="none" stroke="#08090B" stroke-width="1.2" />
+      <path class="mouth" d="M40 35.5 L77 34" fill="none" stroke="#07080A" stroke-width="1" />
+      <path class="nostril" d="M72 30.5 l2 0.3" fill="none" stroke="#08090B" stroke-width="1.1" />
+      <!-- One gold eye, partially hooded; vertical slit, no round cartoon pupil. -->
+      <g id="eye-strain" class="eye">
+        <path d="M52.9 26.7 Q56 26.05 59.3 26.8 Q56.1 27.5 52.9 26.7 Z" fill="#FFB21E" style="fill:var(--coil-eye, #FFB21E)" />
+        <path id="pupil-strain" class="pupil" d="M56.2 25.2 L56.8 26.7 L56.3 28.3 L55.7 26.7 Z" fill="#0A0B0D" />
+      </g>
+      <path class="orbital-ridge" d="M50 24.5 L58 24.8 L62 27.5" fill="none" stroke="#0D1013" stroke-width="1.6" />
+      <!-- Tensed nape: three restrained compression creases. -->
+      <path class="neck-tension" d="M7 27 L14 23 M9 33 L18 27 M12 38 L21 32" fill="none" stroke="#77838C" stroke-width="0.8" opacity="0.28" />
+    </g>
+    <g id="pose-strike" class="pose">
+      <!-- Open throat, behind both jaw and skull. Hinge: 32,35. -->
+      <path class="throat" d="M28 33 L74 34 L64 58 Q44 54 28 38 Z" fill="#0A0B0D" />
+      <!-- Independently rotatable lower jaw. -->
+      <g id="jaw-strike" class="jaw" transform="rotate(35 32 35)">
+        <path d="M29 34 C46 34 63 35 78 33 L76 39 C65 43 48 45 35 41 L28 39 Z" fill="url(#body-fill)" />
+        <path d="M35 39 Q54 43 73 37" fill="none" stroke="#65717A" stroke-width="0.7" opacity="0.34" />
+      </g>
+      <!-- Skull and flat 24-unit neck socket: x=0, y=20..44. -->
+      <path class="skull" d="M0 20 C14 20 17 13 30 13 L45 15 C58 18 66 23 75 27 L80 31 L78 35 L58 37 L35 36 C22 37 13 44 0 44 Z" fill="url(#body-fill)" />
+      <path id="sheen-strike" class="sheen" d="M0 21 C15 21 20 15 30 15 L45 17 Q60 20 73 28 L62 26 L42 21 L27 20 Q14 25 0 25 Z" fill="url(#iridescence)" opacity="0.45" />
+      <path class="crown-rim" d="M0 21 C15 21 20 15 30 15 L45 17 Q60 20 73 28 L62 26 L42 21 L27 20 Q14 25 0 25 Z" fill="none" stroke="url(#iridescence)" stroke-width="0.45" opacity="0.4" />
+      <!-- Large, quiet head plates; no illustrative hatch noise. -->
+      <path class="head-plates" d="M19 22 L29 20 L39 23 L35 30 L22 31 Z M39 23 L46 19 L55 22 L54 28 L43 30 Z M22 31 L35 30 L39 35 M43 30 L52 33 L61 30 L69 33" fill="none" stroke="#818B95" stroke-width="0.55" opacity="0.18" />
+      <path class="cheek" d="M14 36 L28 30 L37 32 M39 34 L52 32" fill="none" stroke="#08090B" stroke-width="1.2" />
+      <path class="mouth" d="M40 35.5 L77 34" fill="none" stroke="#07080A" stroke-width="1" />
+      <path class="nostril" d="M72 30.5 l2 0.3" fill="none" stroke="#08090B" stroke-width="1.1" />
+      <!-- One gold eye, partially hooded; vertical slit, no round cartoon pupil. -->
+      <g id="eye-strike" class="eye">
+        <path d="M52.9 26.7 Q56 24.3 59.3 26.8 Q56.1 28.8 52.9 26.7 Z" fill="#FFB21E" style="fill:var(--coil-eye, #FFB21E)" />
+        <path id="pupil-strike" class="pupil" d="M56.2 25.2 L56.8 26.7 L56.3 28.3 L55.7 26.7 Z" fill="#0A0B0D" />
+      </g>
+      <path class="orbital-ridge" d="M50 24.5 L58 24.8 L62 27.5" fill="none" stroke="#0D1013" stroke-width="1.1" />
+      <!-- Subtle paired fangs; shorter rear fang reads as three-quarter depth. -->
+      <g class="fangs" fill="#ECE8DF" style="fill:var(--coil-bone, #ECE8DF)">
+        <path d="M65 35 L69 35 Q68 41 65 43 L66 37 Z" />
+        <path d="M56 36 L59 36 L57 41 Z" opacity="0.6" />
+      </g>
+    </g>
+    <g id="pose-tongue" class="pose">
+      <!-- Independently rotatable lower jaw. -->
+      <g id="jaw-tongue" class="jaw">
+        <path d="M29 34 C46 34 63 35 78 33 L76 39 C65 43 48 45 35 41 L28 39 Z" fill="url(#body-fill)" />
+        <path d="M35 39 Q54 43 73 37" fill="none" stroke="#65717A" stroke-width="0.7" opacity="0.34" />
+      </g>
+      <!-- Skull and flat 24-unit neck socket: x=0, y=20..44. -->
+      <path class="skull" d="M0 20 C14 20 17 13 30 13 L45 15 C58 18 66 23 75 27 L80 31 L78 35 L58 37 L35 36 C22 37 13 44 0 44 Z" fill="url(#body-fill)" />
+      <path id="sheen-tongue" class="sheen" d="M0 21 C15 21 20 15 30 15 L45 17 Q60 20 73 28 L62 26 L42 21 L27 20 Q14 25 0 25 Z" fill="url(#iridescence)" opacity="0.45" />
+      <path class="crown-rim" d="M0 21 C15 21 20 15 30 15 L45 17 Q60 20 73 28 L62 26 L42 21 L27 20 Q14 25 0 25 Z" fill="none" stroke="url(#iridescence)" stroke-width="0.45" opacity="0.4" />
+      <!-- Large, quiet head plates; no illustrative hatch noise. -->
+      <path class="head-plates" d="M19 22 L29 20 L39 23 L35 30 L22 31 Z M39 23 L46 19 L55 22 L54 28 L43 30 Z M22 31 L35 30 L39 35 M43 30 L52 33 L61 30 L69 33" fill="none" stroke="#818B95" stroke-width="0.55" opacity="0.18" />
+      <path class="cheek" d="M14 36 L28 30 L37 32 M39 34 L52 32" fill="none" stroke="#08090B" stroke-width="1.2" />
+      <path class="mouth" d="M40 35.5 L77 34" fill="none" stroke="#07080A" stroke-width="1" />
+      <path class="nostril" d="M72 30.5 l2 0.3" fill="none" stroke="#08090B" stroke-width="1.1" />
+      <!-- One gold eye, partially hooded; vertical slit, no round cartoon pupil. -->
+      <g id="eye-tongue" class="eye">
+        <path d="M52.9 26.7 Q56 24.3 59.3 26.8 Q56.1 28.8 52.9 26.7 Z" fill="#FFB21E" style="fill:var(--coil-eye, #FFB21E)" />
+        <path id="pupil-tongue" class="pupil" d="M56.2 25.2 L56.8 26.7 L56.3 28.3 L55.7 26.7 Z" fill="#0A0B0D" />
+      </g>
+      <path class="orbital-ridge" d="M50 24.5 L58 24.8 L62 27.5" fill="none" stroke="#0D1013" stroke-width="1.1" />
+      <!-- Fine bronze fork. Gold remains reserved for the eye and food. -->
+      <path id="tongue-tongue" class="tongue" d="M78 34 Q85 35 90 33 M90 33 L95 30 M90 33 L95 35" fill="none" stroke="#D69A4A" stroke-width="1.1" stroke-linecap="round" />
+    </g>
+    <g id="pose-rest" class="pose">
+      <!-- Independently rotatable lower jaw. -->
+      <g id="jaw" class="jaw">
+        <path d="M29 34 C46 34 63 35 78 33 L76 39 C65 43 48 45 35 41 L28 39 Z" fill="url(#body-fill)" />
+        <path d="M35 39 Q54 43 73 37" fill="none" stroke="#65717A" stroke-width="0.7" opacity="0.34" />
+      </g>
+      <!-- Skull and flat 24-unit neck socket: x=0, y=20..44. -->
+      <path class="skull" d="M0 20 C14 20 17 13 30 13 L45 15 C58 18 66 23 75 27 L80 31 L78 35 L58 37 L35 36 C22 37 13 44 0 44 Z" fill="url(#body-fill)" />
+      <path id="sheen" class="sheen" d="M0 21 C15 21 20 15 30 15 L45 17 Q60 20 73 28 L62 26 L42 21 L27 20 Q14 25 0 25 Z" fill="url(#iridescence)" opacity="0.45" />
+      <path class="crown-rim" d="M0 21 C15 21 20 15 30 15 L45 17 Q60 20 73 28 L62 26 L42 21 L27 20 Q14 25 0 25 Z" fill="none" stroke="url(#iridescence)" stroke-width="0.45" opacity="0.4" />
+      <!-- Large, quiet head plates; no illustrative hatch noise. -->
+      <path class="head-plates" d="M19 22 L29 20 L39 23 L35 30 L22 31 Z M39 23 L46 19 L55 22 L54 28 L43 30 Z M22 31 L35 30 L39 35 M43 30 L52 33 L61 30 L69 33" fill="none" stroke="#818B95" stroke-width="0.55" opacity="0.18" />
+      <path class="cheek" d="M14 36 L28 30 L37 32 M39 34 L52 32" fill="none" stroke="#08090B" stroke-width="1.2" />
+      <path class="mouth" d="M40 35.5 L77 34" fill="none" stroke="#07080A" stroke-width="1" />
+      <path class="nostril" d="M72 30.5 l2 0.3" fill="none" stroke="#08090B" stroke-width="1.1" />
+      <!-- One gold eye, partially hooded; vertical slit, no round cartoon pupil. -->
+      <g id="eye" class="eye">
+        <path d="M52.9 26.7 Q56 24.3 59.3 26.8 Q56.1 28.8 52.9 26.7 Z" fill="#FFB21E" style="fill:var(--coil-eye, #FFB21E)" />
+        <path id="pupil" class="pupil" d="M56.2 25.2 L56.8 26.7 L56.3 28.3 L55.7 26.7 Z" fill="#0A0B0D" />
+      </g>
+      <path class="orbital-ridge" d="M50 24.5 L58 24.8 L62 27.5" fill="none" stroke="#0D1013" stroke-width="1.1" />
+    </g>
+  </g>
+</svg>

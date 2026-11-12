@@ -1,0 +1,790 @@
+/*
+ * COIL: a game-console skin for Video.js v10.
+ * The video is the screen; HUD, snake lane and pad sit around it and never cover the picture.
+ */
+
+.media-skin.coil {
+  --coil-ink: #0a0b0d;
+  --coil-case: #14171b;
+  --coil-panel: #1d2127;
+  --coil-edge: #2c323a;
+  --coil-bone: #ece8df;
+  --coil-dim: #a7a399;
+  --coil-gold: var(--media-accent-color, #ffb21e);
+  --coil-gold-deep: #b87400;
+  --coil-red: #ff4d3d;
+  --coil-font: 'Jersey 15', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  --coil-key: 46px;
+
+  --media-font-family: var(--coil-font);
+  --media-foreground: var(--coil-bone);
+  --media-background: var(--coil-ink);
+  --media-ring: var(--coil-gold);
+
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  background: var(--coil-case);
+  color: var(--coil-bone);
+  font-family: var(--coil-font);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  border: 2px solid var(--coil-edge);
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.06),
+    inset 0 -4px 0 rgb(0 0 0 / 0.5);
+  overflow: visible;
+}
+
+.media-skin.coil:fullscreen {
+  height: 100%;
+  border: 0;
+}
+
+/* ---- screen ------------------------------------------------------------------------------------------------- */
+
+.coil .coil-screen {
+  order: 2;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  aspect-ratio: 16 / 9;
+  margin-inline: 10px;
+  background: #000;
+  border: 2px solid #000;
+  outline: 2px solid var(--coil-edge);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.media-skin.coil:fullscreen .coil-screen {
+  aspect-ratio: auto;
+}
+
+.coil .coil-screen > :is(video, mux-video, hls-video, [data-media]) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.coil .coil-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Paused, loading and cleared screens get a dim and scanlines, so bone text reads over any footage. */
+.coil .coil-overlay:is([data-state='paused'], [data-state='loading'], [data-state='clear'], [data-state='start']) {
+  background:
+    repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.28) 0 2px, transparent 2px 4px),
+    rgb(10 11 13 / 0.55);
+}
+
+.coil .coil-banner {
+  margin: 0;
+  padding: 6px 16px 8px;
+  font-size: clamp(22px, 6cqi, 44px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--coil-bone);
+  background: var(--coil-ink);
+  border: 2px solid var(--coil-bone);
+  box-shadow: 4px 4px 0 #000;
+}
+
+.coil .coil-banner-gold {
+  color: var(--coil-gold);
+  border-color: var(--coil-gold);
+}
+
+.coil .coil-clear {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.coil .coil-clear-score {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--coil-bone);
+  text-shadow: 2px 2px 0 #000;
+}
+
+.coil .coil-start {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+  height: auto;
+  min-height: 48px;
+  padding: 8px 18px 10px;
+  font: 700 clamp(18px, 4.4cqi, 30px) / 1 var(--coil-font);
+  letter-spacing: 0.1em;
+  color: var(--coil-ink);
+  background: var(--coil-gold);
+  border: 2px solid #000;
+  border-radius: 0;
+  box-shadow:
+    0 5px 0 var(--coil-gold-deep),
+    0 5px 0 2px #000;
+  cursor: pointer;
+  animation: coil-blink 1.1s steps(1) infinite;
+}
+
+.coil .coil-start:hover,
+.coil .coil-start:focus-visible {
+  animation: none;
+  background: #ffc54d;
+}
+
+.coil .coil-start:active {
+  translate: 0 4px;
+  box-shadow:
+    0 1px 0 var(--coil-gold-deep),
+    0 1px 0 2px #000;
+}
+
+.coil .coil-start-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.coil .coil-blink {
+  animation: coil-blink 1.1s steps(1) infinite;
+}
+
+@keyframes coil-blink {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  61%,
+  100% {
+    opacity: 0.35;
+  }
+}
+
+/* ---- console: HUD, lane, pad -------------------------------------------------------------------------------- */
+
+.coil .coil-console {
+  display: contents;
+}
+
+.coil .coil-hud {
+  order: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.coil .coil-hud-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.coil .coil-hud-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--coil-gold);
+}
+
+.coil .coil-hud-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--coil-bone);
+}
+
+.coil .media-title {
+  flex: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--coil-dim);
+  background: none;
+  opacity: 1;
+}
+
+.coil .coil-lane {
+  order: 3;
+  margin: 10px 10px 0;
+  padding-inline: 10px;
+  background:
+    linear-gradient(to bottom, rgb(0 0 0 / 0.5), transparent 8px),
+    repeating-linear-gradient(to right, rgb(236 232 223 / 0.035) 0 1px, transparent 1px 16px), var(--coil-ink);
+  border: 2px solid #000;
+  outline: 2px solid var(--coil-edge);
+}
+
+.coil .coil-pad {
+  order: 4;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px 16px;
+}
+
+/* ---- keys --------------------------------------------------------------------------------------------------- */
+
+.coil .media-button {
+  border-radius: 0;
+  color: var(--coil-bone);
+  font-family: var(--coil-font);
+  cursor: pointer;
+}
+
+.coil :is(.coil-dpad-key, .coil-option, .coil-option-menu .media-button, .coil-a, .coil-b) {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: var(--coil-panel);
+  border: 2px solid #000;
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.12),
+    inset 0 -3px 0 rgb(0 0 0 / 0.45),
+    0 4px 0 #000;
+  transition:
+    translate 60ms steps(2),
+    box-shadow 60ms steps(2),
+    background-color 80ms;
+}
+
+.coil :is(.coil-dpad-key, .coil-option, .coil-option-menu .media-button, .coil-b):hover {
+  background: #2a3038;
+}
+
+.coil :is(.coil-dpad-key, .coil-option, .coil-option-menu .media-button, .coil-a, .coil-b):active {
+  translate: 0 3px;
+  box-shadow:
+    inset 0 2px 0 rgb(0 0 0 / 0.35),
+    0 1px 0 #000;
+}
+
+.coil :is(.coil-dpad-key, .coil-option, .coil-option-menu .media-button, .coil-a, .coil-b, .coil-start):focus-visible {
+  outline: 3px solid var(--coil-gold);
+  outline-offset: 3px;
+}
+
+.media-skin.coil .coil-a:focus-visible,
+.coil .coil-start:focus-visible {
+  outline-color: var(--coil-bone);
+}
+
+.coil .media-button[aria-disabled='true'] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* D-pad: a plus of four keys around a hub. */
+.coil .coil-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--coil-key));
+  grid-template-rows: repeat(3, var(--coil-key));
+}
+
+.coil .coil-dpad-key {
+  width: var(--coil-key);
+  height: var(--coil-key);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.coil .coil-dpad-up {
+  grid-area: 1 / 2;
+}
+.coil .coil-dpad-left {
+  grid-area: 2 / 1;
+  font-size: 14px;
+}
+.coil .coil-dpad-hub {
+  grid-area: 2 / 2;
+  background: var(--coil-panel);
+  border: 2px solid #000;
+  box-shadow: inset 0 0 0 6px var(--coil-case);
+}
+.coil .coil-dpad-right {
+  grid-area: 2 / 3;
+  font-size: 14px;
+  color: var(--coil-gold);
+}
+.coil .coil-dpad-down {
+  grid-area: 3 / 2;
+}
+
+/* Option keys: small pills with a printed legend. */
+.coil .coil-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 14px;
+}
+
+.coil .coil-key {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.coil .coil-key-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--coil-dim);
+  white-space: nowrap;
+}
+
+.coil :is(.coil-option, .coil-option-menu .media-button) {
+  width: 56px;
+  height: 36px;
+}
+
+.coil :is(.coil-option, .coil-option-menu .media-button) .media-button-icon {
+  width: 22px;
+  height: 22px;
+  opacity: 1;
+}
+
+.coil .media-captions-button[aria-pressed='true'],
+.coil .coil-option-menu .media-button[aria-expanded='true'] {
+  color: var(--coil-gold);
+}
+
+/* A and B. */
+.coil .coil-ab {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.coil .coil-key-b {
+  margin-bottom: -6px;
+}
+
+.media-skin.coil :is(.coil-a, .coil-b) {
+  /* an eight-sided key: round, in pixels */
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+  border: 0;
+}
+
+.media-skin.coil .coil-b {
+  width: 56px;
+  height: 56px;
+  background: #343b45;
+  box-shadow:
+    inset 0 3px 0 rgb(255 255 255 / 0.14),
+    inset 0 -5px 0 rgb(0 0 0 / 0.45);
+}
+
+.media-skin.coil .coil-a {
+  width: 76px;
+  height: 76px;
+  color: var(--coil-ink);
+  background: var(--coil-gold);
+  box-shadow:
+    inset 0 4px 0 rgb(255 255 255 / 0.4),
+    inset 0 -7px 0 var(--coil-gold-deep);
+}
+
+.media-skin.coil .coil-a:hover {
+  background: #ffc54d;
+}
+
+.media-skin.coil :is(.coil-a, .coil-b):active {
+  translate: 0 3px;
+  box-shadow: inset 0 4px 0 rgb(0 0 0 / 0.3);
+}
+
+.media-skin.coil .coil-a .media-button-icon-base {
+  width: 34px;
+  height: 34px;
+}
+
+.media-skin.coil .coil-b .media-button-icon {
+  width: 26px;
+  height: 26px;
+}
+
+/* clip-path would cut an outline off, so A and B show focus on their legend and with an inner ring */
+.media-skin.coil :is(.coil-a, .coil-b):focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 4px var(--coil-ink),
+    inset 0 0 0 7px var(--coil-bone);
+}
+
+.coil .coil-key:has(:focus-visible) .coil-key-label {
+  color: var(--coil-ink);
+  background: var(--coil-gold);
+  outline: 3px solid var(--coil-gold);
+}
+
+/* ---- the snake lane (time slider) --------------------------------------------------------------------------- */
+
+.coil .video-controls-slider-row {
+  width: 100%;
+}
+
+.coil .coil-time-slider {
+  height: 88px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.coil .coil-time-slider .coil-snake {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* The stock track and fill are replaced by the snake. */
+.coil .coil-time-slider .media-time-slider-chapters {
+  opacity: 0;
+}
+
+/* The real thumb is an invisible hit box around the snake's head; it shows the focus ring. */
+.coil .coil-time-slider .media-time-slider-thumb,
+.coil .coil-time-slider[data-dragging] .media-time-slider-thumb {
+  left: var(--coil-head-x, var(--media-slider-fill, 0%));
+  top: var(--coil-head-y, 66px);
+  width: 56px;
+  height: 40px;
+  translate: 0 -50%;
+  transform: translateX(-60%);
+  background: transparent;
+  border-color: transparent;
+  border-radius: 0;
+  z-index: 2;
+}
+
+.coil .coil-time-slider .media-time-slider-thumb:focus-visible {
+  outline: 3px solid var(--coil-gold);
+  outline-offset: 2px;
+}
+
+.coil .coil-time-slider .media-time-slider-preview {
+  bottom: calc(100% + 14px);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--coil-bone);
+  text-shadow: 2px 2px 0 #000;
+}
+
+.coil .media-slider-thumbnail {
+  border: 2px solid var(--coil-gold);
+  box-shadow: 4px 4px 0 #000;
+}
+
+/* ---- popups, tooltips --------------------------------------------------------------------------------------- */
+
+.coil :is(.media-popup, .media-tooltip-popup, [class*='tooltip-popup']) {
+  font-family: var(--coil-font);
+  border-radius: 0;
+}
+
+.coil .media-popup {
+  background: var(--coil-ink);
+  color: var(--coil-bone);
+  border: 2px solid var(--coil-bone);
+  box-shadow: 4px 4px 0 #000;
+}
+
+/* ---- narrow players ----------------------------------------------------------------------------------------- */
+
+@container media-root (max-width: 560px) {
+  .coil .coil-pad {
+    gap: 8px;
+    padding: 12px 10px 14px;
+  }
+  .coil .coil-options {
+    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+  }
+  .coil :is(.coil-option, .coil-option-menu .media-button) {
+    width: 46px;
+    height: 34px;
+  }
+  .coil .coil-a {
+    width: 64px;
+    height: 64px;
+  }
+  .coil .coil-b {
+    width: 48px;
+    height: 48px;
+  }
+  .coil .coil-ab {
+    gap: 10px;
+  }
+  .coil .coil-key-label {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+  .coil .coil-hud-value {
+    font-size: 17px;
+  }
+  .coil .media-title {
+    font-size: 11px;
+  }
+  .coil .coil-screen,
+  .coil .coil-lane {
+    margin-inline: 6px;
+  }
+}
+
+@container media-root (max-width: 400px) {
+  .media-skin.coil {
+    --coil-key: 40px;
+  }
+  .coil .coil-key-b .coil-key-label,
+  .coil .coil-key-a .coil-key-label {
+    font-size: 9px;
+  }
+}
+
+/* ---- preferences -------------------------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .coil .coil-start,
+  .coil .coil-blink {
+    animation: none;
+  }
+  .coil :is(.coil-dpad-key, .coil-option, .coil-a, .coil-b, .coil-start) {
+    transition: none;
+  }
+}
+
+/* High contrast / forced colours: drop the drawing and bring back a plain, bordered track and thumb. */
+@media (forced-colors: active), (prefers-contrast: more) {
+  .coil .coil-time-slider .coil-snake {
+    display: none;
+  }
+  .coil .coil-time-slider {
+    height: 44px;
+  }
+  .coil .coil-time-slider .media-time-slider-chapters {
+    opacity: 1;
+  }
+  .coil .coil-time-slider .media-time-slider-thumb,
+  .coil .coil-time-slider[data-dragging] .media-time-slider-thumb {
+    left: var(--media-slider-fill, 0%);
+    top: 50%;
+    width: 14px;
+    height: 22px;
+    transform: translateX(-50%);
+    background: canvastext;
+    border: 2px solid canvas;
+  }
+  .coil :is(.coil-a, .coil-b) {
+    clip-path: none;
+    border: 2px solid;
+  }
+}
+
+/* ---- type scale for Jersey 15 (a condensed pixel face, one weight) ------------------------------------------- */
+
+.media-skin.coil {
+  font-size: 18px;
+  font-weight: 400;
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+}
+.coil :is(.coil-banner, .coil-start, .coil-hud-value, .coil-hud-label, .coil-key-label, .coil-dpad-key, .media-title, .coil-clear-score) {
+  font-weight: 400;
+}
+.coil .coil-hud-label {
+  font-size: 17px;
+}
+.coil .coil-hud-value {
+  font-size: 30px;
+  line-height: 1;
+}
+.coil .media-title {
+  font-size: 18px;
+}
+.coil .coil-key-label {
+  font-size: 15px;
+}
+.coil .coil-dpad-key {
+  font-size: 17px;
+}
+.coil :is(.coil-dpad-left, .coil-dpad-right) {
+  font-size: 22px;
+}
+.coil .coil-banner {
+  font-size: clamp(30px, 8cqi, 64px);
+  line-height: 1;
+}
+.coil .coil-start {
+  font-size: clamp(24px, 5.5cqi, 40px);
+}
+.coil .coil-clear-score {
+  font-size: 26px;
+}
+.coil .coil-time-slider .media-time-slider-preview {
+  font-size: 20px;
+}
+
+@container media-root (max-width: 560px) {
+  .coil .coil-hud-value {
+    font-size: 24px;
+  }
+  .coil .media-title {
+    font-size: 15px;
+  }
+  .coil .coil-key-label {
+    font-size: 13px;
+  }
+}
+@container media-root (max-width: 400px) {
+  .coil :is(.coil-key-a, .coil-key-b) .coil-key-label {
+    font-size: 12px;
+  }
+  .coil .coil-dpad-key {
+    font-size: 14px;
+  }
+  .coil :is(.coil-dpad-left, .coil-dpad-right) {
+    font-size: 18px;
+  }
+}
+
+/* ---- round 2: bigger lane, calmer banners -------------------------------------------------------------------- */
+
+.coil .coil-time-slider {
+  height: 116px;
+}
+
+.coil .coil-lane {
+  background:
+    linear-gradient(to bottom, rgb(0 0 0 / 0.45), transparent 10px),
+    repeating-linear-gradient(to right, rgb(236 232 223 / 0.045) 0 1px, transparent 1px 16px), #0f1216;
+}
+
+.coil .coil-time-slider .media-time-slider-thumb,
+.coil .coil-time-slider[data-dragging] .media-time-slider-thumb {
+  width: 70px;
+  height: 48px;
+}
+
+/* Loading: no screen dim, and only after the stall has lasted a moment, so seeks do not flash it. */
+.coil .coil-overlay[data-state='loading'] {
+  background: none;
+}
+.coil .coil-overlay[data-state='loading'] .coil-banner {
+  animation: coil-late 1.1s steps(1) 0.7s infinite backwards;
+}
+@keyframes coil-late {
+  0% {
+    opacity: 0;
+  }
+  1%,
+  60% {
+    opacity: 1;
+  }
+  61%,
+  100% {
+    opacity: 0.6;
+  }
+}
+
+/* Blink the lettering, never the box, so the banner stays solid over the picture. */
+.coil .coil-banner.coil-blink {
+  animation: coil-blink-text 1.1s steps(1) infinite;
+}
+@keyframes coil-blink-text {
+  0%,
+  60% {
+    color: var(--coil-bone);
+  }
+  61%,
+  100% {
+    color: #6f6c66;
+  }
+}
+.coil .coil-start {
+  animation: coil-blink-start 1.1s steps(1) infinite;
+}
+@keyframes coil-blink-start {
+  0%,
+  60% {
+    background-color: var(--coil-gold);
+  }
+  61%,
+  100% {
+    background-color: var(--coil-bone);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coil .coil-banner.coil-blink,
+  .coil .coil-start {
+    animation: none;
+  }
+  .coil .coil-overlay[data-state='loading'] .coil-banner {
+    animation: coil-late-still 0.7s steps(1) backwards;
+  }
+}
+@keyframes coil-late-still {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ---- phones: D-pad and A/B on one row, option keys in a full-width row under them ----------------------------- */
+
+@container media-root (max-width: 560px) {
+  .coil .coil-pad {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'dpad ab'
+      'options options';
+    row-gap: 14px;
+  }
+  .coil .coil-dpad {
+    grid-area: dpad;
+  }
+  .coil .coil-ab {
+    grid-area: ab;
+    justify-content: flex-end;
+  }
+  .coil .coil-options {
+    grid-area: options;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .coil :is(.coil-option, .coil-option-menu .media-button) {
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+  .coil .coil-options .coil-key {
+    justify-items: stretch;
+    text-align: center;
+  }
+  .coil .coil-time-slider {
+    height: 104px;
+  }
+}

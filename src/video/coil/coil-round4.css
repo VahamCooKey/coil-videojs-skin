@@ -1,0 +1,238 @@
+/* COIL round 4: shorter lane, flipped pad, title screen, volume meter, score ticks, retro captions. */
+
+.coil .coil-time-slider {
+  height: 84px;
+}
+
+@container media-root (max-width: 560px) {
+  .coil .coil-time-slider {
+    height: 80px;
+  }
+  /* A/B on the left, D-pad on the right, option keys in a row underneath */
+  .coil .coil-pad {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'ab dpad'
+      'options options';
+  }
+  .coil .coil-ab {
+    justify-content: flex-start;
+  }
+}
+
+/* title screen: the snake idles above PRESS START */
+.coil .coil-title-screen {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.coil .coil-idle {
+  width: min(200px, 46cqi);
+  height: auto;
+  aspect-ratio: 200 / 112;
+  filter: drop-shadow(0 4px 0 rgb(0 0 0 / 0.55));
+}
+
+/* volume meter on the screen */
+.coil .coil-vol {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 6px 10px 7px;
+  color: var(--coil-bone);
+  background: var(--coil-ink);
+  border: 2px solid var(--coil-bone);
+  box-shadow: 4px 4px 0 #000;
+  opacity: 0;
+  translate: 0 -6px;
+  transition:
+    opacity 120ms steps(3),
+    translate 120ms steps(3);
+}
+
+.coil .coil-vol[data-shown] {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.coil .coil-vol-label {
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  color: var(--coil-gold);
+}
+
+.coil .coil-vol-number {
+  min-width: 1.2em;
+  text-align: right;
+  color: var(--coil-bone);
+  font-variant-numeric: tabular-nums;
+}
+
+.coil .coil-vol-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 24px;
+}
+
+.coil .coil-vol-bar {
+  width: 5px;
+  background: #3a4048;
+}
+
+.coil .coil-vol-bar[data-on] {
+  background: var(--coil-gold);
+}
+
+.coil .coil-vol[data-muted] .coil-vol-label:first-child {
+  color: var(--coil-red);
+}
+
+.coil .coil-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* score: bumps as each second lands, with a +N chip */
+.coil .coil-score-bump {
+  display: inline-block;
+  transform-origin: left bottom;
+  animation: coil-score-bump 260ms steps(4);
+}
+
+@keyframes coil-score-bump {
+  0% {
+    scale: 1.22;
+    filter: brightness(1.6) sepia(1) saturate(4) hue-rotate(-12deg);
+  }
+  100% {
+    scale: 1;
+    filter: none;
+  }
+}
+
+.coil .coil-score-delta {
+  font-size: 20px;
+  line-height: 1;
+  color: var(--coil-gold);
+  animation: coil-score-delta 700ms steps(7) forwards;
+}
+
+.coil .coil-score-delta[data-negative] {
+  color: var(--coil-red);
+}
+
+@keyframes coil-score-delta {
+  0% {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  15% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  70% {
+    opacity: 1;
+    translate: 0 -4px;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+}
+
+/* captions: pixel type on a solid ink plate, like game dialogue */
+.media-skin.coil {
+  --media-caption-track-y: -6px;
+  --media-caption-controls-y: -6px;
+}
+
+.coil video::cue {
+  font-family: 'Jersey 15', ui-monospace, monospace;
+  font-size: 1.25em;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  color: #ece8df;
+  background-color: #0a0b0d;
+  text-shadow: 2px 2px 0 #000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coil .coil-score-bump,
+  .coil .coil-score-delta {
+    animation: none;
+  }
+  .coil .coil-vol {
+    transition: none;
+  }
+}
+
+/* the start button keeps dark lettering in both blink states */
+.media-skin.coil .coil-start {
+  color: var(--coil-ink);
+}
+
+.coil .coil-idle {
+  width: min(300px, 52cqi);
+}
+
+/* keep the +N chip clear of the bumping score */
+.coil .coil-score-delta {
+  margin-left: 8px;
+}
+@keyframes coil-score-bump {
+  0% {
+    scale: 1.1;
+    filter: brightness(1.6) sepia(1) saturate(4) hue-rotate(-12deg);
+  }
+  100% {
+    scale: 1;
+    filter: none;
+  }
+}
+
+/* round 5: minimum width, bigger crisp title snake, pause stats */
+.media-skin.coil {
+  min-width: 320px;
+}
+.coil .coil-idle {
+  width: min(360px, 62cqi);
+  aspect-ratio: 360 / 210;
+  filter: none;
+}
+.coil .coil-pause {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+.coil .coil-pause-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 12px 5px;
+  font-size: clamp(18px, 3.4cqi, 26px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--coil-bone);
+  background: var(--coil-ink);
+  border: 2px solid var(--coil-edge);
+}
+.coil .coil-pause-label {
+  font-size: 0.72em;
+  letter-spacing: 0.14em;
+  color: var(--coil-gold);
+}
+.coil .coil-pause-label:not(:first-child) {
+  margin-left: 10px;
+}

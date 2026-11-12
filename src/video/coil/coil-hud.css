@@ -1,0 +1,227 @@
+/* COIL HUD: SCORE and GOAL as arcade counters, a gold label tab with an icon and glowing digits in a dark plate. */
+
+.coil .coil-hud {
+  padding: 10px 12px;
+}
+
+.coil .coil-hud-cell {
+  position: relative;
+  align-items: stretch;
+  gap: 0;
+  background: #07080a;
+  border: 2px solid #000;
+  outline: 2px solid var(--coil-edge);
+  box-shadow:
+    inset 0 3px 0 rgb(0 0 0 / 0.7),
+    0 3px 0 #000;
+}
+
+.coil .coil-hud-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 4px;
+  font-size: 17px;
+  letter-spacing: 0.12em;
+  color: var(--coil-ink);
+  background: var(--coil-gold);
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.45),
+    inset 0 -3px 0 var(--coil-gold-deep);
+}
+
+/* SCORE: a pellet. GOAL: a finish flag. */
+.coil .coil-hud-label::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--coil-ink);
+}
+
+.coil .coil-hud-cell-end .coil-hud-label::before {
+  width: 11px;
+  height: 12px;
+  clip-path: polygon(0 0, 18% 0, 18% 8%, 100% 30%, 18% 55%, 18% 100%, 0 100%);
+}
+
+.coil .coil-hud-cell > :not(.coil-hud-label):not(.coil-score-delta) {
+  display: flex;
+  align-items: center;
+}
+
+.coil .coil-hud-value {
+  padding: 0 10px 1px;
+  font-size: 30px;
+  line-height: 1;
+  color: #fff3c4;
+  text-shadow:
+    0 0 8px rgb(255 178 30 / 0.6),
+    2px 2px 0 #000;
+}
+
+.coil .coil-hud-cell-end .coil-hud-value {
+  color: var(--coil-bone);
+  text-shadow: 2px 2px 0 #000;
+}
+
+/* the +N chip floats beside the plate, so the plate never changes width */
+.coil .coil-score-delta {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  margin: -10px 0 0 10px;
+  white-space: nowrap;
+  text-shadow: 2px 2px 0 #000;
+}
+
+/* pause screen: the same counters */
+.coil .coil-pause-stats {
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  background: #07080a;
+  border: 2px solid #000;
+  outline: 2px solid var(--coil-bone);
+  box-shadow: 4px 4px 0 #000;
+}
+
+.coil .coil-pause-stats > :not(.coil-pause-label) {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  color: #fff3c4;
+  text-shadow: 0 0 8px rgb(255 178 30 / 0.6);
+}
+
+.coil .coil-pause-label,
+.coil .coil-pause-label:not(:first-child) {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 4px 8px 5px;
+  font-size: 0.72em;
+  color: var(--coil-ink);
+  background: var(--coil-gold);
+}
+
+@container media-root (max-width: 560px) {
+  .coil .coil-hud {
+    gap: 8px;
+    padding: 8px;
+  }
+  .coil .coil-hud-label {
+    gap: 4px;
+    padding: 2px 5px 3px;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+  }
+  .coil .coil-hud-value {
+    padding: 0 6px 1px;
+    font-size: 22px;
+  }
+  /* no room beside the plate: the chip pops above it instead */
+  .coil .coil-score-delta {
+    left: auto;
+    right: 0;
+    top: 100%;
+    margin: 2px 0 0;
+    z-index: 3;
+  }
+}
+
+@container media-root (max-width: 400px) {
+  .coil .media-title {
+    display: none;
+  }
+  .coil .coil-hud {
+    grid-template-columns: auto auto;
+    justify-content: space-between;
+  }
+}
+
+@media (forced-colors: active) {
+  .coil .coil-hud-label,
+  .coil .coil-pause-label {
+    forced-color-adjust: none;
+  }
+}
+
+/* ---- pad keys: no key looks lit at rest; each one flashes when pressed ---------------------------------------- */
+
+.coil .coil-dpad-right {
+  color: var(--coil-bone);
+}
+
+.coil :is(.coil-dpad-key, .coil-option, .coil-option-menu .media-button, .coil-b)[data-pressed] {
+  animation: coil-key-flash 320ms steps(4);
+}
+
+.coil .coil-a[data-pressed] {
+  animation: coil-key-flash-a 320ms steps(4);
+}
+
+@keyframes coil-key-flash {
+  0% {
+    color: var(--coil-ink);
+    background-color: var(--coil-gold);
+    scale: 0.92;
+  }
+  50% {
+    color: var(--coil-gold);
+    background-color: #2a3038;
+    scale: 1.04;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes coil-key-flash-a {
+  0% {
+    background-color: #fff3c4;
+    scale: 0.9;
+  }
+  50% {
+    scale: 1.05;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+/* a small burst of pellets around the key */
+.coil .coil-key,
+.coil .coil-dpad {
+  position: relative;
+}
+
+.coil :is(.coil-dpad-key, .coil-option, .coil-option-menu .media-button)[data-pressed]::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--coil-gold) 0 0) 0 0 / 4px 4px no-repeat,
+    linear-gradient(var(--coil-gold) 0 0) 100% 0 / 4px 4px no-repeat,
+    linear-gradient(var(--coil-gold) 0 0) 0 100% / 4px 4px no-repeat,
+    linear-gradient(var(--coil-gold) 0 0) 100% 100% / 4px 4px no-repeat;
+  animation: coil-key-burst 320ms steps(4) forwards;
+}
+
+@keyframes coil-key-burst {
+  0% {
+    inset: 2px;
+    opacity: 1;
+  }
+  100% {
+    inset: -10px;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coil [data-pressed],
+  .coil [data-pressed]::after {
+    animation: none !important;
+  }
+}
