@@ -8,6 +8,7 @@ import './skin.css';
 import './coil/coil.css';
 import './coil/coil-round4.css';
 import './coil/coil-hud.css';
+import './coil/coil-v2.css';
 import { Container as ContainerPrimitive, Poster as PosterPrimitive, Slider as SliderPrimitive } from '@videojs/react';
 import { usePlayer } from '@videojs/react/video';
 import type { MouseEvent, ReactNode } from 'react';
@@ -30,17 +31,39 @@ export interface VideoSkinProps extends Omit<ContainerPrimitive.Props, 'children
 
 /**
  * COIL: a game-console skin. The video sits in the screen; the HUD, snake lane and pad are always visible around it,
- * so nothing covers the picture and nothing auto-hides.
+ * so nothing covers the picture. In fullscreen the console lies over the picture and hides while the video plays.
  */
 export function VideoSkin({ children, className, renderPoster, renderThumbnail, ...props }: VideoSkinProps = {}) {
   const store = usePlayer();
-  const paused = usePlayer((s) => s.paused);
+  const fullscreen = usePlayer((s) => s.isFullscreen);
 
-  // Clicking the screen toggles playback (a pointer shortcut; the A key on the pad is the real control).
+  // Pointer shortcuts on the screen (the pad holds the real controls). They are scoped to the screen so that a click
+  // on an empty part of the pad does nothing.
+  //   click                      play or pause
+  //   double-click               fullscreen
+  //   double-tap, left or right  back or forward 10 seconds
   const onScreenClick = (event: MouseEvent<HTMLDivElement>) => {
-    if ((event.target as Element).closest('button, a, [role="slider"], [role="dialog"]')) return;
-    if (paused) void store.play();
-    else store.pause();
+    const target = event.target as Element;
+    if (target.closest('button, a, [role="slider"], [role="dialog"], [role="alertdialog"]')) return;
+    const media = event.currentTarget.querySelector('video');
+    const toggle = () => {
+      if (!media || media.paused) void Promise.resolve(store.play()).catch(() => undefined);
+      else store.pause();
+    };
+
+    toggle(); // the second click of a double-click undoes the first click's toggle
+    if (event.detail !== 2) return;
+
+    const box = event.currentTarget.getBoundingClientRect();
+    const where = (event.clientX - box.left) / box.width;
+    const touch = (event.nativeEvent as PointerEvent).pointerType === 'touch';
+    if (touch && media && (where < 1 / 3 || where > 2 / 3)) {
+      void store.seek(Math.max(0, media.currentTime + (where < 1 / 3 ? -10 : 10)));
+    } else if (fullscreen) {
+      void Promise.resolve(store.exitFullscreen()).catch(() => undefined);
+    } else {
+      void Promise.resolve(store.requestFullscreen()).catch(() => undefined);
+    }
   };
 
   return (
@@ -57,8 +80,9 @@ export function VideoSkin({ children, className, renderPoster, renderThumbnail, 
           <SeekIndicator />
         </Indicators>
         <CoilScreenOverlay />
+        {/* inside the screen, so an error covers the picture and leaves the console in view */}
+        <ErrorDialog />
       </div>
-      <ErrorDialog />
       <CoilConsole renderThumbnail={renderThumbnail} />
 
       <VideoHotkeys />

@@ -18,7 +18,7 @@ export type PreloadValue = (typeof PRELOAD_VALUES)[number];
 
 export type Locale = (typeof locales)[number];
 
-export const PLAYER_WIDTH = { min: 340, max: 1360, stops: [384, 512, 672, 960, 1360] } as const;
+export const PLAYER_WIDTH = { min: 320, max: 1360, stops: [384, 512, 672, 960, 1360] } as const;
 
 /** What the shell controls and the preview frame applies. Both read and write it as URL parameters. */
 export interface WorkbenchParams {

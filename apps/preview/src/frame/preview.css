@@ -34,3 +34,10 @@ audio-player,
 live-audio-player {
   display: contents;
 }
+
+/* small viewports: leave room for a 320px player */
+@media (max-width: 400px) {
+  .preview-page {
+    padding: 0;
+  }
+}

@@ -1,0 +1,491 @@
+/*
+ * COIL v2: review fixes and the arcade HUD. Loaded last, so it has the final say.
+ * Sections: lane · preview · HUD counters · stage button · states · error · fullscreen · direction · phones · preferences
+ */
+
+/* ---- lane: a gutter on the left holds the body at 0:00, so the head is always at the true position ---------- */
+
+.media-skin.coil {
+  --coil-gutter: 52px;
+}
+
+.coil .coil-lane {
+  position: relative;
+  z-index: 6; /* the seek preview rises over the screen and its pause dim */
+  padding-left: calc(var(--coil-gutter) + 2px);
+}
+
+.coil .coil-time-slider .coil-snake {
+  inset: 0 0 0 calc(-1 * var(--coil-gutter));
+  width: calc(100% + var(--coil-gutter));
+}
+
+/* ---- seek preview: time and chapter on a solid plate, readable over any frame ------------------------------- */
+
+.coil .coil-time-slider .media-time-slider-preview {
+  text-shadow: none;
+}
+
+.coil .media-time-slider-preview-meta {
+  width: auto;
+  justify-self: center;
+  padding: 2px 10px 4px;
+  color: var(--coil-bone);
+  background: var(--coil-ink);
+  border: 2px solid var(--coil-bone);
+  box-shadow: 4px 4px 0 #000;
+}
+
+.coil .media-time-slider-chapter-title {
+  opacity: 1;
+  color: var(--coil-gold);
+}
+
+/* ---- HUD counters: rolling digit tiles, XP bar ---------------------------------------------------------------- */
+
+.coil .coil-digits {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 7px 8px;
+  font-size: 30px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.coil .coil-digit {
+  display: inline-block;
+  min-width: 0.66em;
+  padding: 1px 2px 3px;
+  text-align: center;
+  color: #fff3c4;
+  /* a split tile, like a mechanical counter */
+  background: linear-gradient(#20252d 0 48%, #000 48% 52%, #151920 52%);
+  border: 1px solid #000;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1);
+  text-shadow: 0 0 8px rgb(255 178 30 / 0.65);
+  animation: coil-digit-roll 200ms steps(4);
+}
+
+@keyframes coil-digit-roll {
+  0% {
+    translate: 0 -45%;
+    opacity: 0.2;
+    color: #fff;
+  }
+  100% {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+
+.coil .coil-digit-sep {
+  padding: 0 1px 3px;
+  color: var(--coil-gold);
+}
+
+.coil .coil-hud-cell-end .coil-digit {
+  color: var(--coil-bone);
+  text-shadow: none;
+}
+
+/* XP bar: fills along the bottom of the SCORE plate as the video is watched */
+.coil .coil-score::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 4px;
+  background: #1d2127;
+}
+
+.coil .coil-hud-cell > .coil-xp {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 1;
+  display: block;
+  height: 4px;
+  background: repeating-linear-gradient(90deg, var(--coil-gold) 0 6px, var(--coil-gold-deep) 6px 8px);
+  box-shadow: 0 0 6px rgb(255 178 30 / 0.7);
+  transition: width 300ms steps(3);
+}
+
+/* ---- STAGE button: chapter number and name; pressing it shows or hides the gates on the lane ----------------- */
+
+.media-skin.coil .coil-stage {
+  justify-self: center;
+  display: flex;
+  align-items: stretch;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 0;
+  overflow: hidden;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--coil-bone);
+  background: #07080a;
+  border: 2px solid #000;
+  outline: 2px solid var(--coil-edge);
+  box-shadow: 0 3px 0 #000;
+  cursor: pointer;
+}
+
+.media-skin.coil .coil-stage:hover {
+  background: #12151a;
+}
+
+.media-skin.coil .coil-stage:focus-visible {
+  outline: 3px solid var(--coil-gold);
+  outline-offset: 3px;
+}
+
+.media-skin.coil .coil-stage:active {
+  translate: 0 2px;
+  box-shadow: 0 1px 0 #000;
+}
+
+.coil .coil-stage-tab {
+  display: flex;
+  align-items: center;
+  padding: 4px 9px 5px;
+  white-space: nowrap;
+  letter-spacing: 0.1em;
+  color: var(--coil-gold);
+  background: var(--coil-panel);
+  box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.1);
+}
+
+.coil .coil-stage-name {
+  align-self: center;
+  min-width: 0;
+  padding: 4px 10px 5px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  unicode-bidi: plaintext;
+  animation: coil-stage-in 320ms steps(4);
+}
+
+@keyframes coil-stage-in {
+  0% {
+    opacity: 0;
+    translate: 0 8px;
+    color: var(--coil-gold);
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* the lamp says whether the gates are showing; its shape changes as well as its colour */
+.coil .coil-stage-led {
+  flex: none;
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  margin-right: 9px;
+  border: 2px solid #4a515b;
+}
+
+.coil .coil-stage[aria-pressed='true'] .coil-stage-led {
+  border-color: var(--coil-gold);
+  background: var(--coil-gold);
+  box-shadow: 0 0 6px var(--coil-gold);
+}
+
+/* ---- key and banner states ------------------------------------------------------------------------------------- */
+
+.coil .media-captions-button[data-active] {
+  color: var(--coil-gold);
+}
+
+.coil .coil-key:has(.media-captions-button[data-active]) .coil-key-label {
+  color: var(--coil-gold);
+}
+
+.coil .coil-banner-red {
+  color: var(--coil-red);
+  border-color: var(--coil-red);
+}
+
+/* LOADING: appears only after a short stall; the plate stays solid and only the letters blink */
+.coil .coil-overlay[data-state='loading'] .coil-banner.coil-loading {
+  animation:
+    coil-late-still 0.7s steps(1) backwards,
+    coil-blink-text 1.1s steps(1) 0.7s infinite;
+}
+
+/* ---- error: GAME OVER on the screen, console still in view ----------------------------------------------------- */
+
+.coil .media-dialog-backdrop {
+  background:
+    repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.3) 0 2px, transparent 2px 4px),
+    rgb(10 11 13 / 0.86);
+}
+
+.coil .media-dialog-popup {
+  gap: 10px;
+  justify-items: center;
+  padding: 16px 20px 18px;
+  text-align: center;
+  font-family: var(--coil-font);
+  color: var(--coil-bone);
+  background: var(--coil-ink);
+  border: 2px solid var(--coil-red);
+  box-shadow: 4px 4px 0 #000;
+}
+
+.coil .media-dialog-popup::before {
+  content: 'GAME OVER';
+  font-size: clamp(28px, 7cqi, 52px);
+  line-height: 1;
+  letter-spacing: 0.12em;
+  color: var(--coil-red);
+}
+
+.coil .media-dialog-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--coil-gold);
+}
+
+.coil .media-dialog-description {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+  color: var(--coil-bone);
+}
+
+.media-skin.coil .media-dialog-close {
+  width: auto;
+  height: auto;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 6px 22px 8px;
+  font-size: 24px;
+  letter-spacing: 0.1em;
+  color: var(--coil-ink);
+  background: var(--coil-gold);
+  border: 2px solid #000;
+  box-shadow: 0 4px 0 var(--coil-gold-deep);
+}
+
+.media-skin.coil .media-dialog-close:focus-visible {
+  outline: 3px solid var(--coil-bone);
+  outline-offset: 3px;
+}
+
+/* ---- fullscreen: the picture fills the screen; the console lies over it and hides while the video plays ------ */
+
+.media-skin.coil:fullscreen {
+  --coil-key: 40px;
+  --media-caption-controls-y: -250px;
+  display: block;
+  background: #000;
+}
+
+.coil:fullscreen .coil-screen {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  border: 0;
+  outline: 0;
+  aspect-ratio: auto;
+}
+
+.coil:fullscreen .coil-console {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none; /* clicks between the HUD and the lane reach the screen */
+}
+
+.coil:fullscreen .coil-console > * {
+  pointer-events: auto;
+  transition:
+    opacity 180ms steps(4),
+    translate 180ms steps(4);
+}
+
+.coil:fullscreen .coil-hud {
+  margin-bottom: auto;
+  padding: 10px 14px 12px;
+  /* a solid top bar, the same material as the pad */
+  background: var(--coil-case);
+  border-bottom: 2px solid var(--coil-edge);
+  box-shadow: 0 4px 0 rgb(0 0 0 / 0.5);
+}
+
+/* the lane runs edge to edge */
+.coil:fullscreen .coil-lane {
+  margin: 0;
+  border-inline: 0;
+  outline: 0;
+  border-top: 2px solid var(--coil-edge);
+}
+
+.coil:fullscreen .coil-time-slider {
+  height: 72px;
+}
+
+.coil:fullscreen .coil-pad {
+  padding: 10px 20px 12px;
+  background: var(--coil-case);
+}
+
+.media-skin.coil:fullscreen .coil-a {
+  width: 62px;
+  height: 62px;
+}
+
+.media-skin.coil:fullscreen .coil-b {
+  width: 48px;
+  height: 48px;
+}
+
+/* hidden while playing, never while paused (the player keeps it visible) or while a control has keyboard focus */
+.coil:fullscreen .coil-console:not([data-visible]):not(:has(:focus-visible)) > * {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.coil:fullscreen .coil-console:not([data-visible]):not(:has(:focus-visible)) > .coil-hud {
+  translate: 0 -12px;
+}
+
+.coil:fullscreen .coil-console:not([data-visible]):not(:has(:focus-visible)) > :is(.coil-lane, .coil-pad) {
+  translate: 0 12px;
+}
+
+.media-skin.coil:fullscreen:has(.coil-console:not([data-visible]):not(:has(:focus-visible))) {
+  cursor: none;
+  --media-caption-controls-y: -6px;
+}
+
+/* ---- direction: time runs left to right in every language, so the console does not mirror ------------------- */
+
+.coil :is(.coil-hud, .coil-lane, .coil-pad, .coil-vol, .coil-pause-stats) {
+  direction: ltr;
+}
+
+/* ---- phones ---------------------------------------------------------------------------------------------------- */
+
+@container media-root (max-width: 560px) {
+  .media-skin.coil {
+    --coil-gutter: 50px;
+  }
+  /* A/B and the D-pad share the first row, so focus follows the rows as they are seen */
+  .coil .coil-pad {
+    reading-flow: grid-rows;
+  }
+  .coil .coil-digits {
+    padding: 3px 5px 7px;
+    font-size: 22px;
+  }
+  .coil .coil-stage-name,
+  .coil .coil-stage-led {
+    display: none;
+  }
+  .media-skin.coil .coil-stage {
+    min-height: 32px;
+    font-size: 15px;
+  }
+  .coil .coil-stage-tab {
+    padding: 3px 6px 4px;
+    letter-spacing: 0.04em;
+  }
+  .coil .coil-stage[aria-pressed='true'] .coil-stage-tab {
+    box-shadow: inset 0 -3px 0 var(--coil-gold);
+  }
+}
+
+@container media-root (max-width: 400px) {
+  .coil .coil-hud {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+  .coil .coil-digits {
+    padding: 3px 3px 7px;
+    font-size: 20px;
+  }
+  .coil .coil-hud-label {
+    padding: 2px 4px 3px;
+    font-size: 13px;
+  }
+  .coil .coil-hud-label::before {
+    display: none;
+  }
+}
+
+/* ---- preferences: last, so nothing above overrides them ------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .coil .coil-digit,
+  .coil .coil-stage-name {
+    animation: none;
+  }
+  .coil .coil-hud-cell > .coil-xp,
+  .coil:fullscreen .coil-console > * {
+    transition: none;
+  }
+  .coil .coil-overlay[data-state='loading'] .coil-banner.coil-loading {
+    animation: coil-late-still 0.7s steps(1) backwards;
+  }
+}
+
+/* High contrast and forced colours: a plain track with a small solid thumb replaces the snake. */
+@media (forced-colors: active), (prefers-contrast: more) {
+  .media-skin.coil .coil-lane {
+    padding-left: 10px;
+  }
+  .media-skin.coil .coil-time-slider {
+    height: 44px;
+  }
+  .media-skin.coil .coil-time-slider .coil-snake {
+    display: none;
+  }
+  .media-skin.coil .coil-time-slider .media-time-slider-chapters {
+    opacity: 1;
+  }
+  .media-skin.coil .coil-time-slider .media-time-slider-thumb,
+  .media-skin.coil .coil-time-slider[data-dragging] .media-time-slider-thumb {
+    left: var(--media-slider-fill, 0%);
+    top: 50%;
+    width: 14px;
+    height: 22px;
+    transform: translateX(-50%);
+    background: canvastext;
+    border: 2px solid canvas;
+  }
+  .media-skin.coil :is(.coil-a, .coil-b) {
+    clip-path: none;
+    border: 2px solid;
+  }
+  .media-skin.coil .coil-digit {
+    background: none;
+    text-shadow: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .coil .coil-stage-tab,
+  .coil .coil-hud-cell > .coil-xp {
+    forced-color-adjust: none;
+  }
+}
+
+/* a key that is not available yet (captions or PiP before the video loads) hides together with its legend */
+.coil .coil-key:has(> .media-button[data-hidden]),
+.coil .coil-key:has(> .media-button[hidden]) {
+  display: none;
+}

@@ -29,7 +29,6 @@ const STATUS_ACTIONS = ['toggleSubtitles', 'toggleFullscreen', 'togglePictureInP
 export function Indicators({ children }: { children?: ReactNode } = {}) {
   return (
     <div aria-hidden="true" className={'media-indicator-group'}>
-      <VolumeIndicator />
       <StatusIndicator />
       {children}
     </div>
@@ -58,7 +57,8 @@ function StatusIndicator() {
   );
 }
 
-function VolumeIndicator() {
+/** Not rendered: COIL shows its own volume meter on the screen. */
+export function VolumeIndicator() {
   return (
     <VolumeIndicatorPrimitive.Root className={cn('media-indicator', 'media-volume-indicator')}>
       <VolumeIndicatorPrimitive.Fill className={'media-volume-indicator-fill'}>
