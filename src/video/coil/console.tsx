@@ -261,7 +261,7 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
                     <PauseIcon className="media-button-icon-base media-play-button-pause-icon" />
                   </PlayButtonPrimitive>
                 </Key>
-                <Key label={muted ? 'B · SOUND' : 'B · MUTE'} className="coil-key-b">
+                <Key label={muted ? 'B · UNMUTE' : 'B · MUTE'} className="coil-key-b">
                   <MuteButton className="coil-b" />
                 </Key>
               </Controls.Group>
@@ -270,7 +270,7 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
                 <Key label="CC">
                   <CaptionsButton className="coil-option" />
                 </Key>
-                <Key label="OPT" className="coil-option-menu">
+                <Key label="MENU" className="coil-option-menu">
                   <SettingsMenu />
                 </Key>
                 <Key label="PIP">
@@ -288,11 +288,11 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
               </Controls.Group>
 
               <Controls.Group className="coil-dpad" aria-label="Seek and volume">
-                <VolumeStep direction={1} />
                 <SeekKey seconds={-10} />
                 <span className="coil-dpad-hub" aria-hidden="true" />
                 <SeekKey seconds={10} />
                 <VolumeStep direction={-1} />
+                <VolumeStep direction={1} />
               </Controls.Group>
             </div>
           </StageGatesContext.Provider>
@@ -344,6 +344,7 @@ export function CoilScreenOverlay() {
   const waiting = usePlayer((s) => s.waiting);
   const duration = usePlayer((s) => s.duration);
   const error = usePlayer((s) => s.error);
+  const stages = useStages();
   const ref = useRef<HTMLDivElement>(null);
 
   // The player reports "not started" again when a paused video is taken back to 0:00; the game has still begun.
@@ -431,8 +432,15 @@ export function CoilScreenOverlay() {
           <p className="coil-banner coil-banner-gold" aria-hidden="true">
             STAGE CLEAR
           </p>
-          <p className="coil-clear-score" aria-hidden="true">
-            SCORE {clock(total, total >= 3600)}
+          <p className="coil-pause-stats" aria-hidden="true">
+            <span className="coil-pause-label">TIME</span>
+            <span>{clock(total, total >= 3600)}</span>
+            {stages.length > 0 && <span className="coil-pause-label">STAGES</span>}
+            {stages.length > 0 && (
+              <span>
+                {stages.length}/{stages.length}
+              </span>
+            )}
           </p>
           <PlayButtonPrimitive render={<Button />} className="coil-start">
             <RestartIcon className="coil-start-icon" />

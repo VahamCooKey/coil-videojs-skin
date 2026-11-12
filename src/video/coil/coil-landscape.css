@@ -193,7 +193,7 @@
 }
 
 /* very short screens: the option keys sit in one row of four under A and B would not fit, so they shrink */
-@media (orientation: landscape) and (max-height: 350px) {
+@media (orientation: landscape) and (max-height: 380px) {
   .media-skin.coil.coil {
     --coil-key: 34px;
   }

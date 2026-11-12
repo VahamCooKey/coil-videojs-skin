@@ -348,6 +348,7 @@ export function CoilSnake() {
           spatAt.clear();
         } else if (Math.abs(jumpSec) >= 3) {
           quietUntil = now + 900;
+          floaters.length = 0;
           const from = Math.max(minNose, shown * W);
           if (jumpSec > 0) {
             boostAt = now;
@@ -571,7 +572,7 @@ export function CoilSnake() {
           const size = big ? 6 : 4;
           ctx.save();
           ctx.shadowColor = C.gold;
-          ctx.shadowBlur = 6;
+          ctx.shadowBlur = 0;
           ctx.fillStyle = C.gold;
           ctx.fillRect(Math.round(rx - size / 2), Math.round(y0 - size / 2), size, size);
           ctx.restore();
@@ -643,14 +644,9 @@ export function CoilSnake() {
         // the last loaded pellet blinks while more is loading
         if (lit && k === frontier && stillLoading) {
           const on = reduce || Math.floor(now / 260) % 2 === 0;
-          size = on ? size + 2 : size;
+          size = on ? size + 1 : size;
           color = on ? C.goldHot : C.gold;
           glow = on ? 14 : 4;
-          ctx.strokeStyle = C.gold;
-          ctx.lineWidth = 1;
-          ctx.globalAlpha = on ? 0.9 : 0.35;
-          ctx.strokeRect(Math.round(px - 6) + 0.5, Math.round(py - 6) + 0.5, 11, 11);
-          ctx.globalAlpha = 1;
         }
         // A pellet at the mouth is drawn after the head, so it is seen between the jaws until the bite takes it.
         if (px <= noseX + lunge + 4 && !hidden) {
@@ -659,7 +655,7 @@ export function CoilSnake() {
         }
         ctx.save();
         ctx.shadowColor = C.gold;
-        ctx.shadowBlur = glow;
+        ctx.shadowBlur = 0;
         ctx.fillStyle = color;
         ctx.fillRect(Math.round(px - size / 2), Math.round(py - size / 2), Math.round(size), Math.round(size));
         ctx.restore();
@@ -673,7 +669,7 @@ export function CoilSnake() {
         ctx.fillStyle = C.gold;
         ctx.lineWidth = 2;
         ctx.shadowColor = C.gold;
-        ctx.shadowBlur = dragging ? 12 : 5;
+        ctx.shadowBlur = 0;
         if (dragging) ctx.fillRect(bx - 6, y0 - 6, 12, 12);
         else ctx.strokeRect(bx - 6, y0 - 6, 12, 12);
         ctx.restore();
@@ -735,9 +731,9 @@ export function CoilSnake() {
       const last = pts.length - 2;
       if (boostGlow > 0) {
         ctx.save();
-        ctx.globalAlpha = 0.5 * boostGlow;
+        ctx.globalAlpha = 0.9 * boostGlow;
         ctx.shadowColor = C.gold;
-        ctx.shadowBlur = 16;
+        ctx.shadowBlur = 0;
         for (let i = last; i >= 0; i -= 2) seg(i, pts[i + 1].w + 8, C.gold, 0, 'round');
         ctx.restore();
       }

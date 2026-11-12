@@ -1,0 +1,341 @@
+/*
+ * COIL finish: the rules that keep the console one consistent object. Loaded last.
+ *
+ *   1. Type on the pixel grid      Jersey 15 is drawn on a 15 px grid, so text is set at 15, 30, 45 or 60 px.
+ *   2. No soft light               Lit things are brighter and flat; nothing glows or blurs.
+ *   3. Counters, chips, keys       Small corrections to the HUD and the pad.
+ *   4. MENU                        The settings menu as an in-game menu: pixel icons and an arrow cursor.
+ *   5. Fullscreen                  A compact console over the picture.
+ */
+
+/* ---- 1. type on the pixel grid ---------------------------------------------------------------------------------- */
+
+.media-skin.coil.coil,
+.media-skin.coil.coil
+  :is(
+    .coil-hud-label,
+    .coil-key-label,
+    .coil-dpad-key,
+    .coil-stage,
+    .coil-score-delta,
+    .coil-vol-label,
+    .media-title,
+    .media-popup,
+    .media-time-slider-preview,
+    .media-dialog-description
+  ) {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.media-skin.coil.coil
+  :is(
+    .coil-digits,
+    .coil-dpad-left,
+    .coil-dpad-right,
+    .coil-start,
+    .coil-pause-stats,
+    .media-dialog-title,
+    .media-dialog-close
+  ) {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.media-skin.coil.coil .coil-banner,
+.media-skin.coil.coil .media-dialog-popup::before {
+  font-size: 60px;
+  line-height: 1;
+}
+
+.media-skin.coil.coil .coil-pause-label {
+  font-size: 15px;
+}
+
+.coil.coil video::cue {
+  font-size: 30px;
+}
+
+@container media-root (max-width: 700px) {
+  .media-skin.coil.coil .coil-banner,
+  .media-skin.coil.coil .media-dialog-popup::before {
+    font-size: 45px;
+  }
+}
+
+@container media-root (max-width: 560px) {
+  .media-skin.coil.coil .coil-banner,
+  .media-skin.coil.coil .media-dialog-popup::before,
+  .media-skin.coil.coil :is(.coil-start, .coil-pause-stats, .media-dialog-title, .media-dialog-close) {
+    font-size: 30px;
+  }
+  /* four digit tiles at 30 px do not fit beside STAGE on a phone; 20 px is the one size off the grid */
+  .media-skin.coil.coil .coil-digits {
+    font-size: 20px;
+  }
+  .media-skin.coil.coil :is(.coil-dpad-left, .coil-dpad-right) {
+    font-size: 15px;
+  }
+  .coil.coil video::cue {
+    font-size: 15px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 540px) {
+  .media-skin.coil.coil .coil-banner {
+    font-size: 45px;
+  }
+  .media-skin.coil.coil .coil-digits {
+    font-size: 20px;
+  }
+  .media-skin.coil.coil :is(.coil-dpad-left, .coil-dpad-right) {
+    font-size: 15px;
+  }
+  .coil.coil video::cue {
+    font-size: 15px;
+  }
+}
+
+/* ---- 2. no soft light --------------------------------------------------------------------------------------------- */
+
+.media-skin.coil.coil :is(.coil-digit, .coil-hud-value, .coil-pause-stats > *) {
+  text-shadow: none;
+}
+
+.media-skin.coil.coil .coil-hud-cell > .coil-xp,
+.media-skin.coil.coil .coil-stage[aria-pressed='true'] .coil-stage-led {
+  box-shadow: none;
+}
+
+.media-skin.coil.coil .coil-score-delta,
+.media-skin.coil.coil .coil-clear-score {
+  text-shadow: 2px 2px 0 #000;
+}
+
+/* ---- 3. counters, chips, keys ------------------------------------------------------------------------------------- */
+
+/* a new digit wipes in inside its tile; it never leaves the tile */
+.media-skin.coil.coil .coil-digit {
+  animation: coil-digit-wipe 180ms steps(3);
+}
+@keyframes coil-digit-wipe {
+  0% {
+    clip-path: inset(0 0 100% 0);
+    color: #fff;
+  }
+  100% {
+    clip-path: inset(0);
+  }
+}
+
+/* the XP bar grows without re-laying out the plate */
+.media-skin.coil.coil .coil-hud-cell > .coil-xp {
+  transition: none;
+}
+
+/* the +N chip always sits in the gap beside the SCORE plate */
+.media-skin.coil.coil .coil-score-delta {
+  left: 100%;
+  right: auto;
+  top: 50%;
+  margin: -8px 0 0 6px;
+  z-index: 3;
+}
+@container media-root (max-width: 400px) {
+  .media-skin.coil.coil .coil-score-delta {
+    display: none; /* no gap to sit in; the digits and the lane still show the gain */
+  }
+}
+
+/* the seek handle's hit box stays inside the lane at 0:00 */
+.media-skin.coil.coil .coil-time-slider .media-time-slider-thumb,
+.media-skin.coil.coil .coil-time-slider[data-dragging] .media-time-slider-thumb {
+  left: clamp(34px, var(--coil-head-x, 34px), 100%);
+}
+
+/* START, PLAY AGAIN and CONTINUE? are always gold; the blink only lifts the tone */
+.media-skin.coil.coil .coil-start {
+  animation: coil-blink-gold 1.1s steps(1) infinite;
+}
+@keyframes coil-blink-gold {
+  0%,
+  60% {
+    background-color: var(--coil-gold);
+  }
+  61%,
+  100% {
+    background-color: #ffd67a;
+  }
+}
+
+/* B shows its state: red and struck through while the sound is off */
+.media-skin.coil.coil .coil-b[data-muted] {
+  color: var(--coil-red);
+  background: #2a1d1f;
+  box-shadow:
+    inset 0 0 0 3px var(--coil-red),
+    inset 0 -5px 0 rgb(0 0 0 / 0.45);
+}
+.media-skin.coil.coil .coil-key:has(.coil-b[data-muted]) .coil-key-label {
+  color: var(--coil-red);
+}
+
+/* comfortable targets on the desktop pad and HUD */
+.media-skin.coil.coil :is(.coil-option, .coil-option-menu .media-button) {
+  height: 44px;
+}
+.media-skin.coil.coil .coil-stage {
+  min-height: 44px;
+}
+.media-skin.coil.coil .coil-hud-cell {
+  min-height: 44px;
+}
+
+@media (orientation: landscape) and (max-height: 540px) {
+  .media-skin.coil.coil :is(.coil-option, .coil-option-menu .media-button) {
+    height: 38px;
+  }
+  .media-skin.coil.coil .coil-stage,
+  .media-skin.coil.coil .coil-hud-cell {
+    min-height: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-skin.coil.coil .coil-digit,
+  .media-skin.coil.coil .coil-start {
+    animation: none;
+  }
+}
+
+/* ---- 4. MENU ------------------------------------------------------------------------------------------------------ */
+
+.media-skin.coil.coil .media-menu-popup {
+  padding: 0;
+  color: var(--coil-bone);
+  background: var(--coil-ink);
+  border: 2px solid var(--coil-bone);
+  box-shadow: 4px 4px 0 #000;
+}
+
+.media-skin.coil.coil :is(.media-menu-item, .media-menu-radio-item, .media-menu-back-item) {
+  position: relative;
+  min-height: 40px;
+  padding-inline: 26px 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: none;
+}
+
+/* the cursor: a gold arrow beside the row in focus, not a filled bar */
+.media-skin.coil.coil :is(.media-menu-item, .media-menu-radio-item, .media-menu-back-item)[data-highlighted] {
+  color: var(--coil-gold);
+  background: #171a1f;
+}
+.media-skin.coil.coil :is(.media-menu-item, .media-menu-radio-item, .media-menu-back-item)[data-highlighted]::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  width: 8px;
+  height: 10px;
+  translate: 0 -50%;
+  background: var(--coil-gold);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.media-skin.coil.coil :is(.media-menu-item, .media-menu-radio-item, .media-menu-back-item):focus-visible {
+  outline: 2px solid var(--coil-gold);
+  outline-offset: -2px;
+}
+
+.media-skin.coil.coil .media-menu-trigger-icon,
+.media-skin.coil.coil .media-menu-radio-icon,
+.media-skin.coil.coil :is(.media-menu-forward-chevron, .media-menu-back-chevron) {
+  width: 18px;
+  height: 18px;
+  opacity: 1;
+}
+
+.media-skin.coil.coil .media-menu-hint {
+  color: var(--coil-dim);
+}
+
+.media-skin.coil.coil .media-menu-separator {
+  height: 2px;
+  margin: 0;
+  background: var(--coil-edge);
+}
+
+.media-skin.coil.coil .coil-option-menu .media-button[aria-expanded='true'] {
+  color: var(--coil-gold);
+}
+.media-skin.coil.coil .coil-key:has(.media-button[aria-expanded='true']):not(:has(:focus-visible)) .coil-key-label {
+  color: var(--coil-gold);
+}
+
+.media-skin.coil.coil .media-time-slider-preview-meta {
+  line-height: 1.3;
+}
+
+/* ---- 5. fullscreen: a compact console ----------------------------------------------------------------------------- */
+
+@media not ((orientation: landscape) and (max-height: 540px)) {
+  .media-skin.coil.coil:fullscreen {
+    --coil-key: 44px;
+  }
+
+  .media-skin.coil.coil:fullscreen .coil-hud {
+    padding: 6px 12px 8px;
+  }
+  .media-skin.coil.coil:fullscreen :is(.coil-hud-cell, .coil-stage) {
+    min-height: 36px;
+  }
+  .media-skin.coil.coil:fullscreen .coil-digits {
+    padding-block: 2px 6px;
+  }
+
+  .media-skin.coil.coil:fullscreen .coil-time-slider {
+    height: 60px;
+  }
+
+  /* one row: A and B, the option keys, then seek and volume side by side */
+  .media-skin.coil.coil:fullscreen .coil-pad {
+    padding: 8px 18px 8px;
+    align-items: center;
+  }
+  .media-skin.coil.coil:fullscreen .coil-ab {
+    align-items: center;
+  }
+  .media-skin.coil.coil:fullscreen .coil-key-b {
+    margin-bottom: 0;
+  }
+  .media-skin.coil.coil:fullscreen .coil-a {
+    width: 52px;
+    height: 52px;
+  }
+  .media-skin.coil.coil:fullscreen .coil-b {
+    width: 44px;
+    height: 44px;
+  }
+  .media-skin.coil.coil:fullscreen .coil-a .media-button-icon-base {
+    width: 26px;
+    height: 26px;
+  }
+  .media-skin.coil.coil:fullscreen .coil-dpad {
+    display: flex;
+    gap: 6px;
+  }
+  .media-skin.coil.coil:fullscreen .coil-dpad-hub {
+    display: none;
+  }
+  .media-skin.coil.coil:fullscreen .coil-dpad-key {
+    width: 56px;
+    height: 44px;
+  }
+  .media-skin.coil.coil:fullscreen .coil-dpad-right {
+    margin-right: 10px;
+  }
+  .media-skin.coil.coil:fullscreen .coil-key {
+    gap: 4px;
+  }
+}
