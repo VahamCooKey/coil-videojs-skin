@@ -295,7 +295,8 @@ export function CoilSnake() {
       if (!W || !H) return;
 
       const reduce = motionQuery.matches;
-      const { paused, ended, waiting, duration, volume, muted, stages, gates } = live.current;
+      const { paused, ended, duration, volume, muted, stages, gates } = live.current;
+      const waiting = live.current.waiting || document.documentElement.hasAttribute('data-coil-stall');
       if (lastDuration > 0 && duration > 0 && Math.abs(duration - lastDuration) > 0.5) begun = false; // another video
       if (duration > 0) lastDuration = duration;
       if (live.current.started) begun = true;

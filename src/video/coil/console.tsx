@@ -31,6 +31,7 @@ import { SettingsMenu } from '../shared/settings-menu';
 import { TimeSlider, type ThumbnailSlot } from '../shared/time-slider';
 import { Title } from '../shared/title';
 import { CoilIdleSnake } from './coil-idle';
+import { CoilLoader } from './coil-loader';
 import {
   FullscreenEnterIcon,
   FullscreenExitIcon,
@@ -401,9 +402,21 @@ export function CoilScreenOverlay() {
   const store = usePlayer();
   const paused = usePlayer((s) => s.paused);
   const ended = usePlayer((s) => s.ended);
-  const waiting = usePlayer((s) => s.waiting);
+  const stalled = usePlayer((s) => s.waiting);
   const duration = usePlayer((s) => s.duration);
   const error = usePlayer((s) => s.error);
+
+  // Demo option from the workbench: show the LOADING screen as if playback had stalled.
+  const [demoStall, setDemoStall] = useState(false);
+  useEffect(() => {
+    const root = document.documentElement;
+    const read = () => setDemoStall(root.hasAttribute('data-coil-stall'));
+    read();
+    const seen = new MutationObserver(read);
+    seen.observe(root, { attributes: true, attributeFilter: ['data-coil-stall'] });
+    return () => seen.disconnect();
+  }, []);
+  const waiting = stalled || (demoStall && !paused);
   const stages = useStages();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -479,9 +492,10 @@ export function CoilScreenOverlay() {
         </div>
       )}
       {state === 'loading' && (
-        <p className="coil-banner coil-loading" aria-hidden="true">
-          LOADING
-        </p>
+        <div className="coil-loading" aria-hidden="true">
+          <CoilLoader />
+          <p className="coil-loading-text">LOADING</p>
+        </div>
       )}
       {state === 'clear' && (
         <div className="coil-clear">

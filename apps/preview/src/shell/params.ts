@@ -33,6 +33,8 @@ export interface WorkbenchParams {
   preload: PreloadValue;
   /** COIL demo: pretend the video loads slowly, so the loading pellets can be seen. */
   slowBuffer: boolean;
+  /** COIL demo: show the LOADING screen, as if playback had stalled. */
+  stall: boolean;
 }
 
 function oneOf<const Values extends readonly string[]>(values: Values, value: string | null, fallback: Values[number]) {
@@ -55,6 +57,7 @@ export function readParams(query: string): WorkbenchParams {
     loop: flag('loop'),
     preload: oneOf(PRELOAD_VALUES, params.get('preload'), 'metadata'),
     slowBuffer: flag('slowBuffer'),
+    stall: flag('stall'),
   };
 }
 
@@ -72,6 +75,7 @@ export function writeParams(value: WorkbenchParams): string {
     loop: flag(value.loop),
     preload: value.preload,
     slowBuffer: flag(value.slowBuffer),
+    stall: flag(value.stall),
   }).toString();
 }
 
@@ -116,5 +120,6 @@ export function applyDocumentParams(value: WorkbenchParams): void {
   root.style.colorScheme = value.scheme === 'auto' ? '' : value.scheme;
   root.lang = value.locale;
   root.toggleAttribute('data-coil-slow-buffer', value.slowBuffer);
+  root.toggleAttribute('data-coil-stall', value.stall);
   root.dir = value.dir === 'auto' ? localeDirection(value.locale) : value.dir;
 }

@@ -641,3 +641,32 @@
     display: none;
   }
 }
+
+/* ---- loading: the snake chases its tail ---------------------------------------------------------------------------- */
+
+.media-skin.coil.coil .coil-loading {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  /* only after the stall has lasted a moment, so a quick seek does not flash it */
+  animation: coil-late-still 0.7s steps(1) backwards;
+}
+.media-skin.coil.coil .coil-loader {
+  width: min(132px, 34cqi);
+  height: auto;
+  aspect-ratio: 1;
+}
+.media-skin.coil.coil .coil-loading-text {
+  margin: 0;
+  padding: 2px 8px 3px;
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  color: var(--coil-ink);
+  background: var(--coil-gold);
+}
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
+  .media-skin.coil.coil .coil-loader {
+    width: min(132px, 30lvh);
+  }
+}

@@ -142,6 +142,11 @@ export function OptionsPanel({ id, params, onParamsChange, preferences }: Option
             checked={params.slowBuffer}
             onChange={(slowBuffer) => onParamsChange({ slowBuffer })}
           />
+          <SwitchItem
+            label="Loading screen (simulated)"
+            checked={params.stall}
+            onChange={(stall) => onParamsChange({ stall })}
+          />
           <SelectField
             label="Preload"
             value={params.preload}
