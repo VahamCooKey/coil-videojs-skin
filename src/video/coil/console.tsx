@@ -48,7 +48,15 @@ function Key({ label, children, className }: { label: string; children: ReactNod
     <div className={`coil-key${className ? ` ${className}` : ''}`}>
       {children}
       <span className="coil-key-label" aria-hidden="true">
-        {label}
+        {/* "A · PLAY": the letter can be dropped where the pad is too narrow for both */}
+        {label.includes(' · ') ? (
+          <>
+            <span className="coil-key-letter">{label.split(' · ')[0]} · </span>
+            {label.split(' · ')[1]}
+          </>
+        ) : (
+          label
+        )}
       </span>
     </div>
   );
@@ -71,10 +79,12 @@ function VolumeStep({ direction }: { direction: 1 | -1 }) {
       aria-disabled={disabled || undefined}
       onClick={() => {
         if (disabled) return;
-        const base = muted ? 0 : volume;
-        const next = Math.max(0, Math.min(1, Math.round((base + direction * 0.1) * 10) / 10));
+        if (muted) {
+          if (up) store.setMuted(false);
+          return;
+        }
+        const next = Math.max(0, Math.min(1, Math.round((volume + direction * 0.1) * 10) / 10));
         store.setVolume(next);
-        if (muted && up) store.setMuted(false);
       }}
     >
       <span aria-hidden="true">{up ? 'VOL+' : 'VOL-'}</span>
@@ -208,6 +218,50 @@ function StageBadge({ gates, onToggle }: { gates: boolean; onToggle: () => void 
   );
 }
 
+/**
+ * Captions and the fullscreen console, in browsers that cannot move the caption box with CSS.
+ *
+ * Video.js lifts captions above the controls with `video::-webkit-media-text-track-container`, which only Chrome, Edge
+ * and Safari understand. Firefox draws captions itself and ignores it, so there the captions stayed pinned to the
+ * bottom, under the console. This sets each cue's own position while the console covers the bottom of the picture,
+ * and puts it back when the console hides.
+ */
+function useCaptionLift(lift: boolean, anchor: { current: HTMLElement | null }) {
+  useEffect(() => {
+    if (typeof CSS === 'undefined' || CSS.supports('selector(::-webkit-media-text-track-container)')) return;
+    const skin = anchor.current?.closest('.media-skin');
+    const video = skin?.querySelector('video');
+    const lane = skin?.querySelector('.coil-lane');
+    if (!video || !lane) return;
+
+    const place = () => {
+      const box = video.getBoundingClientRect();
+      // The bottom edge of the captions: a clear gap above the lane while the console is up, and otherwise a little
+      // above the bottom of the picture (Firefox would put them flush against the edge).
+      const laneTop = ((lane.getBoundingClientRect().top - box.top) / box.height) * 100;
+      const line = lift ? Math.max(40, Math.min(94, laneTop - 5)) : 95;
+      for (const track of Array.from(video.textTracks)) {
+        if (track.kind !== 'subtitles' && track.kind !== 'captions') continue;
+        for (const cue of Array.from(track.cues ?? []) as VTTCue[]) {
+          if (cue.snapToLines) cue.snapToLines = false;
+          if (cue.lineAlign !== 'end') cue.lineAlign = 'end';
+          if (cue.line !== line) cue.line = line;
+        }
+      }
+    };
+
+    place();
+    // cues arrive as the video loads, and tracks change with the captions menu
+    const tracks = Array.from(video.textTracks);
+    tracks.forEach((track) => track.addEventListener('cuechange', place));
+    video.textTracks.addEventListener('change', place);
+    return () => {
+      tracks.forEach((track) => track.removeEventListener('cuechange', place));
+      video.textTracks.removeEventListener('change', place);
+    };
+  }, [lift, anchor]);
+}
+
 /** Restart the press flash on the key that was just activated. */
 function flashKey(event: MouseEvent<HTMLDivElement>) {
   const key = (event.target as Element).closest('button');
@@ -222,8 +276,14 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
   const paused = usePlayer((s) => s.paused);
   const ended = usePlayer((s) => s.ended);
   const muted = usePlayer((s) => s.muted);
+  const volume = usePlayer((s) => s.volume);
   const fullscreen = usePlayer((s) => s.isFullscreen);
   const [gates, setGates] = useState(true);
+  // the console only covers the picture in fullscreen, and not in the handheld layout of a phone held sideways
+  const shown = usePlayer((s) => s.controlsVisible);
+  const padRef = useRef<HTMLDivElement>(null);
+  const handheld = typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-height: 540px) and (min-width: 560px)').matches;
+  useCaptionLift(fullscreen && shown && !handheld, padRef);
   const playLabel = ended ? 'A · AGAIN' : paused ? 'A · PLAY' : 'A · PAUSE';
 
   return (
@@ -252,7 +312,7 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
             </div>
 
             {/* every key flashes when pressed, by mouse, touch or keyboard */}
-            <div className="coil-pad" onClick={flashKey}>
+            <div ref={padRef} className="coil-pad" onClick={flashKey}>
               <Controls.Group className="coil-ab" aria-label="Playback">
                 <Key label={playLabel} className="coil-key-a">
                   <PlayButtonPrimitive render={<Button />} className="media-play-button coil-a">
@@ -261,7 +321,7 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
                     <PauseIcon className="media-button-icon-base media-play-button-pause-icon" />
                   </PlayButtonPrimitive>
                 </Key>
-                <Key label={muted ? 'B · UNMUTE' : 'B · MUTE'} className="coil-key-b">
+                <Key label={muted || volume === 0 ? 'B · UNMUTE' : 'B · MUTE'} className="coil-key-b">
                   <MuteButton className="coil-b" />
                 </Key>
               </Controls.Group>
@@ -391,13 +451,9 @@ export function CoilScreenOverlay() {
 
   const retry = () => {
     setFailed(false);
-    const media = ref.current?.closest('.media-skin')?.querySelector('video');
-    try {
-      media?.load();
-    } catch {
-      // the source may be gone; play() below reports it again
-    }
-    void Promise.resolve(store.play()).catch(() => undefined);
+    setBegun(false);
+    // the skin mounts the media again and plays it
+    ref.current?.dispatchEvent(new CustomEvent('coil-retry', { bubbles: true }));
   };
 
   return (

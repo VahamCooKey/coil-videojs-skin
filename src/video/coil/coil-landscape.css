@@ -13,11 +13,11 @@
  * The same layout is used in fullscreen there, so nothing has to cover the picture.
  */
 
-@media (orientation: landscape) and (max-height: 540px) {
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
   .media-skin.coil.coil {
     --coil-key: 38px;
     display: grid;
-    grid-template-columns: minmax(124px, 1fr) minmax(0, auto) minmax(124px, 1fr);
+    grid-template-columns: minmax(144px, 1fr) minmax(0, auto) minmax(132px, 1fr);
     grid-template-rows: auto minmax(0, 1fr) auto auto;
     reading-flow: grid-rows;
     width: 100%;
@@ -193,7 +193,7 @@
 }
 
 /* very short screens: the option keys sit in one row of four under A and B would not fit, so they shrink */
-@media (orientation: landscape) and (max-height: 380px) {
+@media (orientation: landscape) and (max-height: 380px) and (min-width: 560px) {
   .media-skin.coil.coil {
     --coil-key: 34px;
   }

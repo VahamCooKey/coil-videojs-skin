@@ -81,7 +81,7 @@
   }
 }
 
-@media (orientation: landscape) and (max-height: 540px) {
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
   .media-skin.coil.coil .coil-banner {
     font-size: 45px;
   }
@@ -191,7 +191,7 @@
   min-height: 44px;
 }
 
-@media (orientation: landscape) and (max-height: 540px) {
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
   .media-skin.coil.coil :is(.coil-option, .coil-option-menu .media-button) {
     height: 38px;
   }
@@ -279,7 +279,7 @@
 
 /* ---- 5. fullscreen: a compact console ----------------------------------------------------------------------------- */
 
-@media not ((orientation: landscape) and (max-height: 540px)) {
+@media not ((orientation: landscape) and (max-height: 540px) and (min-width: 560px)) {
   .media-skin.coil.coil:fullscreen {
     --coil-key: 44px;
   }
@@ -378,7 +378,7 @@
   --media-caption-track-y: -6px;
 }
 /* the handheld layout keeps its controls beside the picture, so captions stay put there */
-@media (orientation: landscape) and (max-height: 540px) {
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
   .media-skin.coil.coil.coil:fullscreen,
   .media-skin.coil.coil.coil:fullscreen:has(.coil-console:not([data-visible])) {
     --media-caption-track-y: -6px;
@@ -389,9 +389,255 @@
 .media-skin.coil.coil.coil:fullscreen .coil-ab {
   gap: 38px;
 }
-@media (orientation: landscape) and (max-height: 540px) {
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
   .media-skin.coil.coil.coil .coil-ab,
   .media-skin.coil.coil.coil:fullscreen .coil-ab {
     gap: 26px;
+  }
+}
+
+/* ---- judged fixes ------------------------------------------------------------------------------------------------- */
+
+/* A key whose control is not available (captions or PiP before the video loads, or after an error) leaves no legend */
+.media-skin.coil.coil .coil-key:not(:has(button)) {
+  display: none;
+}
+
+/* A and B legends keep their own width, so their focus plate fits the words; negative margins stop them widening
+   the pad (this replaces the zero-width trick, which left the focus plate with nothing to paint) */
+.media-skin.coil.coil.coil .coil-ab > .coil-key > .coil-key-label {
+  display: block;
+  width: auto;
+  margin-inline: -60px;
+  padding: 1px 4px 2px;
+}
+
+/* focus on A and B: an outline that follows the eight-sided key, not a square cut off by it */
+.media-skin.coil.coil.coil :is(.coil-a, .coil-b):focus-visible {
+  outline: none;
+  box-shadow: inset 0 -5px 0 rgb(0 0 0 / 0.3);
+}
+.media-skin.coil.coil.coil .coil-ab > .coil-key:has(:focus-visible) {
+  filter: drop-shadow(2px 0 0 var(--coil-bone)) drop-shadow(-2px 0 0 var(--coil-bone))
+    drop-shadow(0 2px 0 var(--coil-bone)) drop-shadow(0 -2px 0 var(--coil-bone));
+}
+.media-skin.coil.coil.coil .coil-ab > .coil-key:has(:focus-visible) > .coil-key-label {
+  color: var(--coil-ink);
+  background: var(--coil-gold);
+  outline: 0;
+}
+
+/* a changing digit is never blank: it starts half drawn */
+@keyframes coil-digit-wipe {
+  0% {
+    clip-path: inset(0 0 45% 0);
+    color: #fff;
+  }
+  100% {
+    clip-path: inset(0);
+  }
+}
+
+/* fullscreen on a narrow screen (a phone held upright): the one-row console does not fit, so the pad keeps its
+   phone arrangement and every key stays on screen */
+@container media-root (max-width: 699px) {
+  .media-skin.coil.coil.coil:fullscreen .coil-dpad {
+    display: grid;
+    gap: 0;
+  }
+  .media-skin.coil.coil.coil:fullscreen .coil-dpad-hub {
+    display: block;
+  }
+  .media-skin.coil.coil.coil:fullscreen .coil-dpad-key {
+    width: var(--coil-key);
+    height: var(--coil-key);
+    margin: 0;
+  }
+  .media-skin.coil.coil.coil:fullscreen .coil-ab {
+    gap: 26px;
+  }
+}
+
+/* the +N chip has no gap to sit in beside a narrow HUD */
+@container media-root (max-width: 720px) {
+  .media-skin.coil.coil.coil .coil-score-delta {
+    display: none;
+  }
+}
+@container media-root (min-width: 401px) and (max-width: 560px) {
+  .media-skin.coil.coil.coil .coil-score-delta {
+    display: block;
+  }
+}
+
+/* long menus scroll, and say so */
+.media-skin.coil.coil .media-menu-content,
+.media-skin.coil.coil .media-menu-popup {
+  scrollbar-width: thin;
+  scrollbar-color: var(--coil-gold) #07080a;
+}
+
+/* a short desktop window: the picture gives up height so the whole console, pad included, stays on screen */
+.media-skin.coil.coil .coil-screen {
+  max-height: max(200px, calc(100dvh - 350px));
+}
+.media-skin.coil.coil:fullscreen .coil-screen {
+  max-height: none;
+}
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
+  .media-skin.coil.coil .coil-screen {
+    max-height: none;
+  }
+}
+@container media-root (max-width: 560px) {
+  .media-skin.coil.coil .coil-screen {
+    max-height: none;
+  }
+}
+
+/* leave a margin above and below on a short desktop window */
+.media-skin.coil.coil.coil .coil-screen {
+  max-height: max(200px, calc(100dvh - 400px));
+}
+.media-skin.coil.coil.coil:fullscreen .coil-screen {
+  max-height: none;
+}
+
+/* ---- phones: the big pieces scale down with the screen ------------------------------------------------------------ */
+
+@container media-root (max-width: 560px) {
+  .media-skin.coil.coil.coil .coil-screen {
+    max-height: none;
+  }
+  .media-skin.coil.coil.coil {
+    --coil-key: 44px;
+  }
+  .media-skin.coil.coil.coil .coil-a {
+    width: 60px;
+    height: 60px;
+  }
+  .media-skin.coil.coil.coil .coil-b {
+    width: 48px;
+    height: 48px;
+  }
+  .media-skin.coil.coil.coil .coil-a .media-button-icon-base {
+    width: 28px;
+    height: 28px;
+  }
+  .media-skin.coil.coil.coil .coil-b .media-button-icon {
+    width: 22px;
+    height: 22px;
+  }
+  /* START, PLAY AGAIN and CONTINUE? */
+  .media-skin.coil.coil.coil .coil-start {
+    min-height: 44px;
+    padding: 5px 14px 7px;
+    gap: 8px;
+    font-size: 20px;
+    letter-spacing: 0.08em;
+    box-shadow:
+      0 4px 0 var(--coil-gold-deep),
+      0 4px 0 2px #000;
+  }
+  .media-skin.coil.coil.coil .coil-start-icon {
+    width: 16px;
+    height: 16px;
+  }
+  /* PAUSED, LOADING, STAGE CLEAR, GAME OVER and the counters under them */
+  .media-skin.coil.coil.coil .coil-banner,
+  .media-skin.coil.coil.coil .media-dialog-popup::before {
+    padding: 3px 10px 5px;
+    font-size: 30px;
+    letter-spacing: 0.08em;
+    box-shadow: 3px 3px 0 #000;
+  }
+  .media-skin.coil.coil.coil .coil-pause-stats {
+    font-size: 20px;
+  }
+  .media-skin.coil.coil.coil .coil-pause-stats > :not(.coil-pause-label) {
+    padding: 0 7px;
+  }
+  .media-skin.coil.coil.coil .coil-pause-label {
+    padding: 3px 6px 4px;
+    font-size: 15px;
+  }
+  .media-skin.coil.coil.coil :is(.coil-pause, .coil-clear) {
+    gap: 6px;
+  }
+  .media-skin.coil.coil.coil .coil-idle {
+    width: min(200px, 44cqi);
+  }
+}
+
+@container media-root (max-width: 380px) {
+  .media-skin.coil.coil.coil .coil-banner,
+  .media-skin.coil.coil.coil .media-dialog-popup::before {
+    font-size: 20px;
+  }
+  .media-skin.coil.coil.coil .coil-pause-stats {
+    font-size: 15px;
+  }
+  .media-skin.coil.coil.coil .coil-start {
+    font-size: 15px;
+    min-height: 44px;
+  }
+}
+
+/* a phone held sideways: the same, a size down */
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
+  .media-skin.coil.coil.coil .coil-screen {
+    max-height: none;
+  }
+  .media-skin.coil.coil.coil .coil-ab,
+  .media-skin.coil.coil.coil:fullscreen .coil-ab {
+    gap: 14px;
+  }
+  .media-skin.coil.coil.coil .coil-banner {
+    padding: 3px 10px 5px;
+    font-size: 30px;
+    letter-spacing: 0.08em;
+  }
+  .media-skin.coil.coil.coil .coil-pause-stats {
+    font-size: 20px;
+  }
+  .media-skin.coil.coil.coil .coil-pause-label {
+    font-size: 15px;
+    padding: 3px 6px 4px;
+  }
+  .media-skin.coil.coil.coil .coil-start {
+    min-height: 40px;
+    padding: 5px 14px 7px;
+    font-size: 20px;
+  }
+  .media-skin.coil.coil.coil .coil-start-icon {
+    width: 16px;
+    height: 16px;
+  }
+  .media-skin.coil.coil.coil .coil-idle {
+    width: min(220px, 40lvh);
+  }
+}
+
+/* sideways phone: B reads UNMUTE while muted, so the two legends need room between them */
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
+  .media-skin.coil.coil.coil .coil-ab,
+  .media-skin.coil.coil.coil:fullscreen .coil-ab {
+    gap: 34px;
+  }
+  .media-skin.coil.coil.coil .coil-ab .coil-key-label {
+    font-size: 15px;
+    letter-spacing: 0;
+  }
+}
+
+/* on the narrower sideways phones the side column is too tight for "B · UNMUTE", so the legends drop the letter
+   and read PLAY / UNMUTE */
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) and (max-width: 760px) {
+  .media-skin.coil.coil.coil .coil-ab,
+  .media-skin.coil.coil.coil:fullscreen .coil-ab {
+    gap: 22px;
+  }
+  .media-skin.coil.coil.coil .coil-key-letter {
+    display: none;
   }
 }

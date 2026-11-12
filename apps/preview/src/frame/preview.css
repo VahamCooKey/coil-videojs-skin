@@ -43,7 +43,7 @@ live-audio-player {
 }
 
 /* a phone held sideways: the player takes the whole screen */
-@media (orientation: landscape) and (max-height: 540px) {
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
   .preview-page {
     padding: 0;
   }
