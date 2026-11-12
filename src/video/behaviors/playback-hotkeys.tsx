@@ -12,6 +12,9 @@ export function PlaybackHotkeys({ disabled = false }: PlaybackHotkeysProps = {})
       <Hotkey disabled={disabled} keys="Space" action="togglePaused" />
       <Hotkey disabled={disabled} keys="k" action="togglePaused" />
       <Hotkey disabled={disabled} keys="m" action="toggleMuted" />
+      {/* COIL prints "A" and "B" on its two main keys, so those letters work as shortcuts too */}
+      <Hotkey disabled={disabled} keys="a" action="togglePaused" />
+      <Hotkey disabled={disabled} keys="b" action="toggleMuted" />
       <Hotkey disabled={disabled} keys="ArrowRight" action="seekStep" />
       <Hotkey disabled={disabled} keys="ArrowLeft" action="seekStep" />
       <Hotkey disabled={disabled} keys="l" action="seekStep" />

@@ -368,7 +368,7 @@
   translate: 0 12px;
 }
 
-.media-skin.coil:fullscreen:has(.coil-console:not([data-visible]):not(:has(:focus-visible))) {
+.media-skin.coil:fullscreen:has(.coil-console:not([data-visible])):not(:has(.coil-console :focus-visible)) {
   cursor: none;
   --media-caption-controls-y: -6px;
 }

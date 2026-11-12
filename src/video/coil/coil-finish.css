@@ -339,3 +339,59 @@
     gap: 4px;
   }
 }
+
+/* ---- A and B: the two legends share one line, and B is centred on A ---------------------------------------------- */
+
+.media-skin.coil.coil.coil .coil-ab {
+  align-items: stretch;
+}
+.media-skin.coil.coil.coil .coil-ab > .coil-key {
+  grid-template-rows: 1fr auto;
+  align-items: center;
+  margin-bottom: 0;
+}
+.media-skin.coil.coil.coil .coil-ab > .coil-key > .coil-key-label {
+  align-self: end;
+}
+
+/* The legends change (PLAY / PAUSE / AGAIN, MUTE / UNMUTE). Each one is centred under its key without taking up
+   width of its own, so a longer word never moves the keys or the rest of the pad. */
+.media-skin.coil.coil.coil .coil-ab > .coil-key {
+  justify-items: center;
+}
+.media-skin.coil.coil.coil .coil-ab > .coil-key > .coil-key-label {
+  width: 0;
+  display: flex;
+  justify-content: center;
+  white-space: nowrap;
+}
+.media-skin.coil.coil.coil .coil-ab {
+  gap: 22px;
+}
+
+/* ---- captions in fullscreen: they ride above the console while it is showing, and drop back when it hides -------- */
+
+.media-skin.coil.coil.coil:fullscreen {
+  --media-caption-track-y: -166px;
+}
+.media-skin.coil.coil.coil:fullscreen:has(.coil-console:not([data-visible])):not(:has(.coil-console :focus-visible)) {
+  --media-caption-track-y: -6px;
+}
+/* the handheld layout keeps its controls beside the picture, so captions stay put there */
+@media (orientation: landscape) and (max-height: 540px) {
+  .media-skin.coil.coil.coil:fullscreen,
+  .media-skin.coil.coil.coil:fullscreen:has(.coil-console:not([data-visible])) {
+    --media-caption-track-y: -6px;
+  }
+}
+
+/* the smaller fullscreen keys need more room between their legends */
+.media-skin.coil.coil.coil:fullscreen .coil-ab {
+  gap: 38px;
+}
+@media (orientation: landscape) and (max-height: 540px) {
+  .media-skin.coil.coil.coil .coil-ab,
+  .media-skin.coil.coil.coil:fullscreen .coil-ab {
+    gap: 26px;
+  }
+}
