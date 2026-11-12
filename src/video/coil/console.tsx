@@ -121,21 +121,29 @@ function Digits({ text }: { text: string }) {
   );
 }
 
-/** SCORE is the timecode: digit tiles that roll as it adds up, a "+N" chip, and an XP bar filling toward the goal. */
+/** SCORE is the timecode: digit tiles that roll as it adds up, a "+N" chip per bite, and an XP bar toward the goal. */
 function Score() {
   const sec = usePlayer((s) => Math.floor(s.currentTime));
   const duration = usePlayer((s) => s.duration);
   const known = Number.isFinite(duration) && duration > 0;
-  const prev = useRef(sec);
-  const delta = sec - prev.current;
+  // The "+N" chip pops when the snake on the lane has eaten (or coughed up) that much time, not on a clock tick.
+  const ref = useRef<HTMLDivElement>(null);
+  const [gain, setGain] = useState({ id: 0, delta: 0 });
   useEffect(() => {
-    prev.current = sec;
-  });
-  // a loop wrapping back to the start is not a rewind
-  const chip = delta !== 0 && !(delta < 0 && sec <= 1);
+    const skin = ref.current?.closest('.media-skin');
+    if (!skin) return;
+    const onScore = (event: Event) => {
+      const delta = (event as CustomEvent<number>).detail;
+      if (delta) setGain((g) => ({ id: g.id + 1, delta }));
+    };
+    skin.addEventListener('coil-score', onScore);
+    return () => skin.removeEventListener('coil-score', onScore);
+  }, []);
+  const delta = gain.delta;
+  const chip = gain.id > 0;
 
   return (
-    <div className="coil-hud-cell coil-score">
+    <div ref={ref} className="coil-hud-cell coil-score">
       <span className="coil-hud-label" aria-hidden="true">
         SCORE
       </span>
@@ -147,7 +155,7 @@ function Score() {
         style={{ width: `${known ? Math.min(100, (sec / duration) * 100) : 0}%` }}
       />
       {chip && (
-        <span key={`d${sec}`} className="coil-score-delta" data-negative={delta < 0 || undefined} aria-hidden="true">
+        <span key={`d${gain.id}`} className="coil-score-delta" data-negative={delta < 0 || undefined} aria-hidden="true">
           {delta > 0 ? `+${delta}` : delta}
         </span>
       )}
@@ -230,7 +238,16 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
               <Goal />
             </div>
 
-            <div className="coil-lane">
+            <div
+              className="coil-lane"
+              onPointerUpCapture={(event) => {
+                // the slider takes focus for itself as the pointer lets go, so hand it on just after
+                const skin = event.currentTarget.closest<HTMLElement>('.media-skin');
+                window.setTimeout(() => {
+                  if (skin?.querySelector('.coil-lane')?.contains(document.activeElement)) skin.focus({ preventScroll: true });
+                }, 80);
+              }}
+            >
               <TimeSlider renderThumbnail={renderThumbnail} />
             </div>
 
@@ -322,13 +339,30 @@ function VolumeMeter() {
 /** What the screen says on top of the video: title screen, paused, loading, stage clear, game over, volume meter. */
 export function CoilScreenOverlay() {
   const store = usePlayer();
-  const started = usePlayer((s) => s.started);
   const paused = usePlayer((s) => s.paused);
   const ended = usePlayer((s) => s.ended);
   const waiting = usePlayer((s) => s.waiting);
   const duration = usePlayer((s) => s.duration);
   const error = usePlayer((s) => s.error);
   const ref = useRef<HTMLDivElement>(null);
+
+  // The player reports "not started" again when a paused video is taken back to 0:00; the game has still begun.
+  const startedNow = usePlayer((s) => s.started);
+  const [begun, setBegun] = useState(startedNow);
+  useEffect(() => setBegun(false), [duration]);
+  useEffect(() => {
+    if (startedNow) setBegun(true);
+  }, [startedNow, duration]);
+  const started = begun || startedNow;
+
+  // START, PLAY AGAIN and CONTINUE? leave the screen when pressed, which would drop keyboard focus to the page and
+  // switch the shortcuts off. Hand focus on: to the A key for a keyboard press, to the player for a click.
+  const keepFocus = (event: MouseEvent<HTMLDivElement>) => {
+    if (!(event.target as Element).closest('button')) return;
+    const skin = event.currentTarget.closest<HTMLElement>('.media-skin');
+    const next = event.detail === 0 ? skin?.querySelector<HTMLElement>('.coil-a') : skin;
+    next?.focus({ preventScroll: true });
+  };
 
   // Once the error dialog is closed the video is still broken, so the screen says so instead of offering START.
   const [failed, setFailed] = useState(false);
@@ -366,7 +400,7 @@ export function CoilScreenOverlay() {
   };
 
   return (
-    <div ref={ref} className="coil-overlay" data-state={state}>
+    <div ref={ref} className="coil-overlay" data-state={state} onClick={keepFocus}>
       {state === 'start' && (
         <div className="coil-title-screen">
           <CoilIdleSnake />

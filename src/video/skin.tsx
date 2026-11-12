@@ -9,6 +9,7 @@ import './coil/coil.css';
 import './coil/coil-round4.css';
 import './coil/coil-hud.css';
 import './coil/coil-v2.css';
+import './coil/coil-landscape.css';
 import { Container as ContainerPrimitive, Poster as PosterPrimitive, Slider as SliderPrimitive } from '@videojs/react';
 import { usePlayer } from '@videojs/react/video';
 import type { MouseEvent, ReactNode } from 'react';

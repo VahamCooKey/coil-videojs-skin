@@ -1,0 +1,217 @@
+/*
+ * COIL on a phone held sideways (a short, wide viewport): the handheld layout.
+ * The picture takes the middle at full height, with the controls on either side of it, like a handheld console:
+ *
+ *   SCORE            STAGE             GOAL
+ *               ┌──────────────┐        VOL+
+ *   A  B        │    screen    │     -10    +10
+ *               │              │        VOL-
+ *   CC   OPT    └──────────────┘     PIP   FULL
+ *   ~~~~~~~~~~~~~~ snake lane ~~~~~~~~~~~~~~~
+ *
+ * Focus follows the rows as they are seen: A, B, the D-pad, then CC, OPT, PIP, FULL.
+ * The same layout is used in fullscreen there, so nothing has to cover the picture.
+ */
+
+@media (orientation: landscape) and (max-height: 540px) {
+  .media-skin.coil.coil {
+    --coil-key: 38px;
+    display: grid;
+    grid-template-columns: minmax(124px, 1fr) minmax(0, auto) minmax(124px, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    reading-flow: grid-rows;
+    width: 100%;
+    /* The tall viewport, as if the browser's address bar were already hidden. The page is then a little taller than
+       what is showing, so a small swipe up tucks the bar away and the player fills the whole screen. */
+    height: 100vh;
+    height: 100lvh;
+    max-height: none;
+    min-width: 0;
+    aspect-ratio: auto !important;
+    overflow: hidden;
+    background: var(--coil-case);
+    cursor: auto;
+  }
+
+  /* ---- top: a thin HUD ---- */
+  .coil.coil .coil-hud {
+    grid-area: 1 / 1 / 2 / -1;
+    margin: 0;
+    padding: 4px 8px;
+    gap: 8px;
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+  .coil.coil .coil-digits {
+    padding: 2px 4px 6px;
+    font-size: 20px;
+  }
+  .coil.coil .coil-hud-label {
+    padding: 2px 6px 3px;
+    font-size: 14px;
+  }
+  .media-skin.coil.coil .coil-stage {
+    min-height: 28px;
+    font-size: 15px;
+  }
+  .coil.coil .coil-stage-tab,
+  .coil.coil .coil-stage-name {
+    padding-block: 2px 3px;
+  }
+
+  /* ---- middle: the picture at full height ---- */
+  .coil.coil .coil-screen {
+    position: relative;
+    inset: auto;
+    grid-area: 2 / 2 / 4 / 3;
+    justify-self: center;
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0;
+    aspect-ratio: 16 / 9;
+    border: 2px solid #000;
+    outline: 2px solid var(--coil-edge);
+  }
+  .coil.coil .coil-idle {
+    width: min(360px, 46lvh);
+  }
+  .coil.coil .coil-banner {
+    font-size: clamp(26px, 13lvh, 56px);
+  }
+  .media-skin.coil.coil .coil-start {
+    min-height: 40px;
+    font-size: clamp(20px, 9lvh, 34px);
+  }
+
+  /* ---- sides: the pad, split around the picture ---- */
+  .coil.coil .coil-console {
+    display: contents;
+    position: static;
+  }
+  .coil.coil .coil-pad {
+    display: contents;
+  }
+  .coil.coil .coil-ab {
+    grid-area: 2 / 1;
+    place-self: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  /* the option keys split up: CC and OPT under A and B, PIP and FULL under the D-pad */
+  .coil.coil .coil-options {
+    display: contents;
+  }
+  .coil.coil .coil-options > .coil-key {
+    grid-row: 3;
+    justify-self: center;
+    padding-bottom: 2px;
+  }
+  .coil.coil .coil-options > .coil-key:nth-child(1) {
+    grid-column: 1;
+    margin-right: 60px;
+  }
+  .coil.coil .coil-options > .coil-key:nth-child(2) {
+    grid-column: 1;
+    margin-left: 60px;
+  }
+  .coil.coil .coil-options > .coil-key:nth-child(3) {
+    grid-column: 3;
+    margin-right: 60px;
+  }
+  .coil.coil .coil-options > .coil-key:nth-child(4) {
+    grid-column: 3;
+    margin-left: 60px;
+  }
+  .coil.coil .coil-dpad {
+    grid-area: 2 / 3;
+    place-self: center;
+  }
+  .media-skin.coil.coil .coil-a {
+    width: 58px;
+    height: 58px;
+  }
+  .media-skin.coil.coil .coil-b {
+    width: 44px;
+    height: 44px;
+  }
+  .coil.coil .coil-a .media-button-icon-base {
+    width: 28px;
+    height: 28px;
+  }
+  .coil.coil :is(.coil-option, .coil-option-menu .media-button) {
+    width: 52px;
+    min-width: 0;
+    height: 36px;
+  }
+  .coil.coil .coil-key {
+    gap: 3px;
+  }
+  .coil.coil .coil-key-label {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+  }
+  .coil.coil .coil-key-b {
+    margin-bottom: -4px;
+  }
+
+  /* ---- bottom: a short lane, edge to edge ---- */
+  .coil.coil .coil-lane {
+    --coil-scale: 0.7;
+    --coil-gutter: 18px;
+    grid-area: 4 / 1 / 5 / -1;
+    margin: 4px 0 0;
+    border-inline: 0;
+    border-bottom: 0;
+    outline: 0;
+    border-top: 2px solid var(--coil-edge);
+    background-color: #0f1216;
+  }
+  .media-skin.coil.coil .coil-time-slider {
+    height: 50px;
+  }
+  .media-skin.coil.coil .coil-time-slider .media-time-slider-thumb {
+    width: 56px;
+    height: 44px;
+  }
+
+  /* nothing covers the picture in this layout, so nothing hides, in fullscreen too */
+  .coil.coil:fullscreen .coil-console:not([data-visible]):not(:has(:focus-visible)) > *,
+  .coil.coil:fullscreen .coil-console > * {
+    opacity: 1;
+    translate: none;
+    pointer-events: auto;
+  }
+  .media-skin.coil.coil:fullscreen:has(.coil-console:not([data-visible])) {
+    cursor: auto;
+  }
+  .media-skin.coil.coil {
+    --media-caption-controls-y: -6px;
+  }
+}
+
+/* very short screens: the option keys sit in one row of four under A and B would not fit, so they shrink */
+@media (orientation: landscape) and (max-height: 350px) {
+  .media-skin.coil.coil {
+    --coil-key: 34px;
+  }
+  .media-skin.coil.coil .coil-a {
+    width: 50px;
+    height: 50px;
+  }
+  .media-skin.coil.coil .coil-b {
+    width: 40px;
+    height: 40px;
+  }
+  .coil.coil :is(.coil-option, .coil-option-menu .media-button) {
+    height: 30px;
+  }
+  .coil.coil .coil-options .coil-key-label {
+    font-size: 11px;
+  }
+  .media-skin.coil.coil .coil-time-slider {
+    height: 44px;
+  }
+}

@@ -8,8 +8,7 @@
 
 import { useEffect, useRef } from 'react';
 
-import headRest from './assets/head-rest.svg?url';
-import headTongue from './assets/head-tongue.svg?url';
+import { drawHead } from './head';
 import { BAND_EVERY, C, SHEEN, SHEEN_PERIOD } from './coil-snake';
 
 const W = 360;
@@ -21,7 +20,6 @@ const TURNS = 2;
 const PSI_MAX = TURNS * 2 * Math.PI;
 const TAIL = 96;
 const STEP = 2.5;
-const HEAD_SCALE = T / 24;
 const CX = 160;
 const CY = 124;
 
@@ -46,10 +44,6 @@ export function CoilIdleSnake() {
     canvas.height = H * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const rest = new Image();
-    rest.src = headRest;
-    const tongue = new Image();
-    tongue.src = headTongue;
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const start = performance.now();
     let raf = 0;
@@ -148,63 +142,33 @@ export function CoilIdleSnake() {
         seg(i, w + 6, 'rgba(236,232,223,0.62)', 0, 1.8);
         seg(i, w + 3, C.ink, 0, 1.8);
         seg(i, w, C.scale1, 0, 2.2);
-        const nk = Math.min(1, d / 56);
-        ctx.globalAlpha = 0.3 + 0.7 * nk;
         seg(i, w * 0.5, C.scale2, w * 0.16, 2.2);
-        ctx.globalAlpha = 1;
-        if (nk < 1) seg(i, w, `rgba(10,11,13,${(0.3 * (1 - nk)).toFixed(3)})`, 0, 2.2);
         const si = Math.floor(((((d - shift) / SHEEN_PERIOD) % 1) + 1) * 96) % 96;
-        ctx.globalAlpha = 0.4 + 0.6 * Math.min(1, d / 48);
         seg(i, Math.max(2, w * 0.28), SHEEN[si], w * 0.24, 2.2);
-        ctx.globalAlpha = 1;
-        if (d % BAND_EVERY < 3.4 && w > 7 && d > 30) seg(i, w * 0.92, C.band);
+        if (d % BAND_EVERY < 3.4 && w > 7) seg(i, w * 0.92, C.band);
       }
 
-      // head, continuous with the neck: it faces along the neck's direction, with a slow tongue flick
+      // head: drawn from the same layers as the body, facing along the neck, with a slow tongue flick
       const beat = t % 3.2;
       const flick = !reduce && ((beat > 0.3 && beat < 0.5) || (beat > 0.66 && beat < 0.86));
-      const img = flick && tongue.complete ? tongue : rest;
       const n0 = pts[0];
       const n1 = pts[2];
-      // the body carries on a few px under the head
-      {
-        const len = Math.hypot(n0.x - n1.x, n0.y - n1.y) || 1;
-        ctx.lineCap = 'butt';
-        ctx.strokeStyle = '#262c35';
-        ctx.lineWidth = T;
-        ctx.beginPath();
-        ctx.moveTo(n0.x, n0.y);
-        ctx.lineTo(n0.x + ((n0.x - n1.x) / len) * 10, n0.y + ((n0.y - n1.y) / len) * 10);
-        ctx.stroke();
-      }
-      if (img.complete && img.naturalWidth) {
-        ctx.save();
-        ctx.translate(n0.x, n0.y);
-        ctx.rotate(Math.atan2(n0.y - n1.y, n0.x - n1.x));
-        // the same dark edge and light rim as the body, on every side except the neck
-        const px = canvas.width / W;
-        ctx.shadowBlur = 0;
-        for (const [color, r] of [['rgba(236,232,223,0.62)', 2.5], [C.ink, 1.5]] as const) {
-          ctx.shadowColor = color;
-          for (const [ox, oy] of [[1, 0], [0, 1], [0, -1], [0.7, 0.7], [0.7, -0.7]]) {
-            ctx.shadowOffsetX = ox * r * px;
-            ctx.shadowOffsetY = oy * r * px;
-            ctx.drawImage(img, -3, -32 * HEAD_SCALE, 96 * HEAD_SCALE, 64 * HEAD_SCALE);
-          }
-        }
-        ctx.shadowColor = 'transparent';
-        ctx.drawImage(img, -3, -32 * HEAD_SCALE, 96 * HEAD_SCALE, 64 * HEAD_SCALE);
-        ctx.restore();
-      }
+      ctx.save();
+      ctx.translate(n0.x, n0.y);
+      ctx.rotate(Math.atan2(n0.y - n1.y, n0.x - n1.x));
+      drawHead(ctx, {
+        T,
+        tongue: flick,
+        sheenAt: (d) => SHEEN[Math.floor(((((d - shift) / SHEEN_PERIOD) % 1) + 1) * 96) % 96],
+        bandAt: (d) => ((d % BAND_EVERY) + BAND_EVERY) % BAND_EVERY < 3.4,
+        colors: { ...C, rim: 'rgba(236,232,223,0.62)' },
+      });
+      ctx.restore();
 
       if (!reduce) raf = requestAnimationFrame(draw);
     };
 
     raf = requestAnimationFrame(draw);
-    // the head art loads after the first frame; draw once more so a still (reduced-motion) frame has its head
-    rest.onload = () => {
-      if (motion.matches) requestAnimationFrame(draw);
-    };
     return () => cancelAnimationFrame(raf);
   }, []);
 

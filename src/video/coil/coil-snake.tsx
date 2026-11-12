@@ -19,16 +19,10 @@
 import { usePlayer } from '@videojs/react/video';
 import { useContext, useEffect, useRef } from 'react';
 
-import headRest from './assets/head-rest.svg?url';
-import headStrain from './assets/head-strain.svg?url';
-import headStrike from './assets/head-strike.svg?url';
-import headTongue from './assets/head-tongue.svg?url';
-
+import { drawHead as paintHead, HEAD_LENGTH } from './head';
 import { StageGatesContext, useStages } from './stages';
 
 type Pose = 'rest' | 'strain' | 'strike' | 'tongue';
-
-const HEAD_SRC: Record<Pose, string> = { rest: headRest, strain: headStrain, strike: headStrike, tongue: headTongue };
 
 export const C = {
   ink: '#0A0B0D',
@@ -62,14 +56,12 @@ export const BAND_EVERY = 13;
 const FONT = '"Jersey 15", ui-monospace, monospace';
 
 /** Body thickness in px. Head art uses a 24-unit neck socket, so it scales by T / 24. */
-const T = 14;
-const HEAD_SCALE = T / 24;
-const HEAD_W = 96 * HEAD_SCALE;
-const HEAD_H = 64 * HEAD_SCALE;
-const NOSE = 80 * HEAD_SCALE; // neck socket to nose tip
-const NECK_Y = 32 * HEAD_SCALE; // socket centre
+const T = 18;
+const NOSE = HEAD_LENGTH * T; // neck to nose tip
 
 const STEP = 2.5;
+/** Seconds between attempts to pull free of the knot while paused. */
+const STRUGGLE = 3.2;
 const PELLET_MIN_GAP = 6;
 const PELLET_UNITS = [1, 2, 5, 10, 15, 30, 60, 120, 300];
 
@@ -205,29 +197,27 @@ export function CoilSnake() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const heads = {} as Record<Pose, HTMLImageElement>;
-    (Object.keys(HEAD_SRC) as Pose[]).forEach((p) => {
-      const img = new Image();
-      img.src = HEAD_SRC[p];
-      heads[p] = img;
-    });
-
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     let W = 0;
     let H = 0;
     // The canvas reaches this far left of the slider (set in CSS as --coil-gutter): a run-up, so at 0:00
     // the head sits exactly on the start line with a good length of body behind it.
-    let G = 52;
+    let G = 66;
+    // Drawing scale (set in CSS as --coil-scale). Phones draw the whole playfield smaller, so the snake has more room
+    // to travel and more pellets fit on the lane. Everything below works in unscaled units.
+    let K = 1;
     const resize = () => {
       const r = root.getBoundingClientRect();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      G = parseFloat(getComputedStyle(root).getPropertyValue('--coil-gutter')) || 52;
-      W = r.width;
-      H = r.height;
-      canvas.width = Math.round((W + G) * dpr);
-      canvas.height = Math.round(H * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, G * dpr, 0);
+      const css = getComputedStyle(root);
+      K = parseFloat(css.getPropertyValue('--coil-scale')) || 1;
+      G = (parseFloat(css.getPropertyValue('--coil-gutter')) || 66) / K;
+      W = r.width / K;
+      H = r.height / K;
+      canvas.width = Math.round((W + G) * K * dpr);
+      canvas.height = Math.round(H * K * dpr);
+      ctx.setTransform(dpr * K, 0, 0, dpr * K, G * K * dpr, 0);
       ctx.direction = 'ltr'; // time and numbers read left to right in every language
     };
     const ro = new ResizeObserver(resize);
@@ -259,6 +249,9 @@ export function CoilSnake() {
     let introAt = -1e9;
     let wasStarted = live.current.started;
     let stage = -1; // index of the stage the head is in
+    let calmSince = performance.now(); // when the knotted snake last came to rest
+    let begun = live.current.started; // stays true once playback has started, even back at 0:00
+    let lastDuration = 0;
     let runEaten = 0; // run-up pellets eaten during the intro
     let hov = 0; // eased hover amount, for the magnify under the cursor
     let phase = 0;
@@ -285,6 +278,11 @@ export function CoilSnake() {
       if (particles.length > 140) particles.splice(0, particles.length - 140);
     };
 
+    /** Tell the HUD how much time the snake just gained or lost. */
+    const score = (seconds: number) => {
+      root.dispatchEvent(new CustomEvent('coil-score', { detail: seconds, bubbles: true }));
+    };
+
     const pop = (x: number, y: number, text: string, color: string, size: number, now: number, life = 900) => {
       floaters.push({ x, y, text, born: now, life, color, size });
       if (floaters.length > 8) floaters.shift();
@@ -297,7 +295,11 @@ export function CoilSnake() {
       if (!W || !H) return;
 
       const reduce = motionQuery.matches;
-      const { paused, ended, waiting, duration, started, volume, muted, stages, gates } = live.current;
+      const { paused, ended, waiting, duration, volume, muted, stages, gates } = live.current;
+      if (lastDuration > 0 && duration > 0 && Math.abs(duration - lastDuration) > 0.5) begun = false; // another video
+      if (duration > 0) lastDuration = duration;
+      if (live.current.started) begun = true;
+      const started = begun;
       // louder = a faster, bigger wave down the body; muted = almost still
       const loud = muted ? 0 : Math.max(0, Math.min(1, volume));
       const waveSpeed = 0.25 + loud * 1.05;
@@ -353,10 +355,12 @@ export function CoilSnake() {
             springMode = 'boost';
             pop(from + 10, y0 - 30, `+${snap(jumpSec)}`, C.gold, 30, now, 1200);
             pop(from + 10, y0 + 40, 'BOOST', C.goldHot, 18, now, 800);
+            score(snap(jumpSec));
           } else {
             coughAt = now;
             springMode = 'recoil';
             pop(from, y0 - 30, `-${snap(-jumpSec)}`, C.red, 30, now, 1200);
+            score(-snap(-jumpSec));
           }
           springModeUntil = now + 1400;
           if (!reduce) holdUntil = now + 170;
@@ -417,7 +421,11 @@ export function CoilSnake() {
       const noseRaw = Math.min(W - 2, Math.max(minNose, shown * W));
       // The knot is small early in the video and grows as the snake gets longer.
       // Near the start there is little room behind the head, so the knot shrinks to fit. The head never moves for it.
-      const ks = Math.min(0.85 + 0.3 * shown, Math.max(0.42, (noseRaw - NOSE + G - 8) / KNOT_SPAN));
+      const ks = Math.min(
+        0.85 + 0.3 * shown,
+        (H - T - 8) / (5.1 * KNOT_U), // never taller than the lane
+        Math.max(0.42, (noseRaw - NOSE + G - 8) / KNOT_SPAN)
+      );
       const noseFull = noseRaw;
 
       // Before the first play there is no snake on the lane. On play it comes in from the left with its mouth open,
@@ -439,6 +447,7 @@ export function CoilSnake() {
         const announce = now > quietUntil && !dragging && !intro && !ended;
         if (!reduce) burst(noseX, y0, announce ? 4 : 2, C.gold, now);
         if (announce) pop(noseX + 6, y0 - 20, `+${(nowEaten - eaten) * unit}`, C.gold, 17, now, 650);
+        if (announce) score((nowEaten - eaten) * unit); // the HUD's score ticks when the snake has eaten
         eaten = nowEaten;
       } else if (nowEaten < eaten) {
         // Coughed back up: each pellet hops out of the mouth as the snake is pulled back past its place.
@@ -472,7 +481,19 @@ export function CoilSnake() {
       const coughT = (now - coughAt) / 1000;
       const winding = now < holdUntil;
       const jolt = winding && coughT < 0.2 ? Math.sin(now / 14) * 2 : 0;
-      const breathe = idle ? 1 + Math.sin(idleT * 1.9) * 0.022 : 1;
+      // Paused, it keeps trying to get free. Every few seconds: pull forward hard (the knot tightens, the neck
+      // stretches, the head shakes), give up with a snap back (the knot springs loose), then rest and breathe.
+      // It only struggles once it has come to rest in the knot. Any movement (play, a seek, a drag) cuts the
+      // struggle off at once, and the next try starts a moment after the snake has settled again.
+      const atRest = idle && paused && !dragging && springMode === 'normal' && speed < 4 && now >= holdUntil;
+      if (!atRest) calmSince = now;
+      const calmT = (now - calmSince) / 1000 - 0.7;
+      const beatT = atRest && calmT >= 0 ? calmT % STRUGGLE : 99;
+      const strain = beatT < 0.18 ? beatT / 0.18 : beatT < 1.05 ? 1 : beatT < 1.2 ? 1 - (beatT - 1.05) / 0.15 : 0;
+      const recoil = beatT >= 1.2 && beatT < 1.9 ? Math.sin((beatT - 1.2) * 16) * Math.exp(-(beatT - 1.2) * 6) : 0;
+      const pull = 9 * strain - 3 * recoil; // a steady pull: any buzz here shows as flicker in the packed knot
+      const breathe = idle ? 1 + Math.sin(idleT * 1.9) * 0.02 - 0.06 * ease(strain) + 0.03 * recoil : 1;
+      if (idle && beatT >= 1.2 && beatT < 1.2 + dt * 1.5) burst(noseX - NOSE * 0.4, y0 - 6, 5, C.bone, now, 2.6);
 
       const neckX = noseX - NOSE + jolt - (winding && boostT < 0.2 ? Math.sin((boostT / 0.17) * Math.PI) * 6 : 0);
       const kx = neckX - KNOT_HALF * KNOT_U * ks; // knot centre
@@ -500,7 +521,8 @@ export function CoilSnake() {
             const a = KNOT.pts[i0];
             const b = KNOT.pts[i1];
             const t = f - Math.floor(f);
-            qx = kx + (a.x + (b.x - a.x) * t) * breathe * ks;
+            // the pull is strongest at the head and dies away into the knot
+            qx = kx + (a.x + (b.x - a.x) * t) * breathe * ks + pull * Math.exp(-dd / 46);
             // the trefoil hangs lower than it rises: lift its middle so the knot sits centred on the lane
             const lift = 0.47 * KNOT_U * ks * Math.max(0, Math.min(1, dd / 36, (KNOT.length * ks - dd) / 36));
             qy = y0 + (a.y + (b.y - a.y) * t) * breathe * ks - lift;
@@ -658,8 +680,8 @@ export function CoilSnake() {
       }
 
       if (hidden) {
-        root.style.setProperty('--coil-head-x', `${minNose}px`);
-        root.style.setProperty('--coil-head-y', `${y0}px`);
+        root.style.setProperty('--coil-head-x', `${minNose * K}px`);
+        root.style.setProperty('--coil-head-y', `${y0 * K}px`);
         return;
       }
 
@@ -736,73 +758,52 @@ export function CoilSnake() {
         // butt caps: an outline must not reach back over the skin of the segment drawn just before it
         seg(i, w + 3, C.ink, 0, 'butt', 1.6);
         seg(i, w, C.scale1, 0, 'butt', 2);
-        const nk = Math.min(1, d / 40);
-        ctx.globalAlpha = 0.3 + 0.7 * nk;
         seg(i, w * 0.5, C.scale2, w * 0.16, 'butt', 2);
-        ctx.globalAlpha = 1;
-        if (nk < 1) seg(i, w, `rgba(10,11,13,${(0.3 * (1 - nk)).toFixed(3)})`, 0, 'butt', 2);
-        const band = (((d + sheenShift * 0.15) % BAND_EVERY) + BAND_EVERY) % BAND_EVERY < 3.2;
+        const band = ((d % BAND_EVERY) + BAND_EVERY) % BAND_EVERY < 3.2;
         const si = Math.floor(((((d - sheenShift) / SHEEN_PERIOD) % 1) + 1) * 96) % 96;
-        ctx.globalAlpha = 0.4 + 0.6 * Math.min(1, d / 36);
         seg(i, Math.max(2, w * 0.26), SHEEN[si], w * 0.24, 'butt', 2);
-        ctx.globalAlpha = 1;
-        if (band && w > 6 && d > 22) seg(i, w * 0.92, C.band, 0, 'butt');
+        if (band && w > 6) {
+          ctx.globalAlpha = Math.min(1, d / 34); // the pattern fades in behind the head
+          seg(i, w * 0.92, C.band, 0, 'butt');
+          ctx.globalAlpha = 1;
+        }
       }
 
-      // the body carries on a few px under the head
-      {
-        const a = pts[0];
-        const b = pts[1];
-        const len = Math.hypot(a.x - b.x, a.y - b.y) || 1;
-        ctx.lineCap = 'butt';
-        ctx.strokeStyle = '#262c35';
-        ctx.lineWidth = T;
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(a.x + ((a.x - b.x) / len) * 7, a.y + ((a.y - b.y) / len) * 7);
-        ctx.stroke();
-      }
-
-      // ---- head ---------------------------------------------------------------------------------------------------
+      // ---- head: drawn from the same layers as the body, so there is no join at the neck ---------------------------
       let pose: Pose = 'rest';
       if (winding || intro || speed > 160 || (dragging && speed > 50)) pose = 'strike';
       else if (coughT >= 0 && coughT < 0.5) pose = 'strike';
       else if (e > 0.6) {
-        // idling: a slow tongue flick now and then
-        const beat = idleT % 2.8;
-        pose = idle && ((beat > 0.2 && beat < 0.38) || (beat > 0.52 && beat < 0.7)) ? 'tongue' : 'rest';
+        // knotted: it strains against the knot, and flicks its tongue while it rests between tries
+        const beat = beatT;
+        pose = strain > 0.2 ? 'strain' : idle && ((beat > 1.7 && beat < 1.88) || (beat > 2.02 && beat < 2.2)) ? 'tongue' : 'rest';
       } else if (waiting && !reduce && Math.floor(now / 520) % 2 === 0) pose = 'tongue';
       else if (reaching) pose = 'strike'; // jaw opens only as it lunges for the pellet
-      const img = heads[pose].complete ? heads[pose] : heads.rest;
       const n0 = pts[0];
-      const n1 = pts[Math.min(pts.length - 1, 4)];
+      const n1 = pts[Math.min(pts.length - 1, 2)];
       const angle = Math.atan2(n0.y - n1.y, n0.x - n1.x);
       const headHover = reduce ? 0 : hov * Math.exp(-(((hoverX - (noseX - NOSE / 2)) / 44) ** 2));
       const bite = (reduce ? 1 : 1 + 0.16 * Math.exp(-(now - biteAt) / 90)) + 0.16 * headHover;
-      const sway = idle ? Math.sin(idleT * 1.3) * 0.07 : 0;
-      const bob = idle ? Math.sin(idleT * 1.9) * 1.2 : 0;
+      // straining: the head shakes from side to side as it pulls
+      const shake = strain > 0 ? Math.sin(now / 70) * 0.08 * strain : 0; // only the head shakes, slowly
+      const sway = atRest ? Math.sin(idleT * 1.3) * 0.05 * (1 - strain) + shake : 0;
+      const jawOpen = pose === 'strike' ? 1 : pose === 'strain' ? 0.22 + 0.1 * Math.sin(now / 60) : 0;
       const drawHead = (x: number, y: number, alpha: number) => {
-        if (!img.complete || !img.naturalWidth) return;
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.translate(x, y + bob);
-        ctx.rotate(angle * 0.6 + sway);
+        ctx.translate(x, y);
+        ctx.rotate(angle + sway - (0.05 + 0.1 * Math.min(1, jawOpen)) * (1 - e));
         ctx.scale(bite, bite);
-        if (alpha === 1) {
-          // the same dark edge and light rim as the body, on every side except the neck
-          const px = canvas.width / (W + G);
-          ctx.shadowBlur = 0;
-          for (const [color, r] of [[C.rim, 2.5], [C.ink, 1.5]] as const) {
-            ctx.shadowColor = color;
-            for (const [ox, oy] of [[1, 0], [0, 1], [0, -1], [0.7, 0.7], [0.7, -0.7]]) {
-              ctx.shadowOffsetX = ox * r * px;
-              ctx.shadowOffsetY = oy * r * px;
-              ctx.drawImage(img, -1.5, -NECK_Y, HEAD_W, HEAD_H);
-            }
-          }
-          ctx.shadowColor = 'transparent';
-        }
-        ctx.drawImage(img, -1.5, -NECK_Y, HEAD_W, HEAD_H);
+        paintHead(ctx, {
+          T,
+          jaw: jawOpen,
+          tongue: pose === 'tongue',
+          narrow: pose === 'strain',
+          outline: alpha === 1,
+          sheenAt: (d) => SHEEN[Math.floor(((((d - sheenShift) / SHEEN_PERIOD) % 1) + 1) * 96) % 96],
+          bandAt: (d) => ((d % BAND_EVERY) + BAND_EVERY) % BAND_EVERY < 3.2,
+          colors: C,
+        });
         ctx.restore();
       };
       for (let i = 0; i < trail.length; i++) drawHead(trail[i].x, n0.y, 0.08 + (i / trail.length) * 0.22); // after-images
@@ -858,8 +859,8 @@ export function CoilSnake() {
       }
 
       // head position for the focus ring on the real slider thumb
-      root.style.setProperty('--coil-head-x', `${n0.x + NOSE / 2}px`);
-      root.style.setProperty('--coil-head-y', `${n0.y}px`);
+      root.style.setProperty('--coil-head-x', `${(n0.x + NOSE / 2) * K}px`);
+      root.style.setProperty('--coil-head-y', `${n0.y * K}px`);
     };
 
     raf = requestAnimationFrame(frame);

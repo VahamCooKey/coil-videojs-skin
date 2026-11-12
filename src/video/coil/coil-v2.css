@@ -6,7 +6,8 @@
 /* ---- lane: a gutter on the left holds the body at 0:00, so the head is always at the true position ---------- */
 
 .media-skin.coil {
-  --coil-gutter: 52px;
+  /* how far the head sits from the left edge at 0:00; the back of the head starts off the edge */
+  --coil-gutter: 26px;
 }
 
 .coil .coil-lane {
@@ -381,8 +382,18 @@
 /* ---- phones ---------------------------------------------------------------------------------------------------- */
 
 @container media-root (max-width: 560px) {
-  .media-skin.coil {
-    --coil-gutter: 50px;
+  /* phones: a smaller snake on a shorter lane, so it has more room to travel and more pellets to eat */
+  /* set on the lane: a container query cannot style the container itself */
+  .coil .coil-lane {
+    --coil-scale: 0.7;
+    --coil-gutter: 18px;
+  }
+  .media-skin.coil .coil-time-slider {
+    height: 60px;
+  }
+  .media-skin.coil .coil-time-slider .media-time-slider-thumb {
+    width: 56px;
+    height: 44px;
   }
   /* A/B and the D-pad share the first row, so focus follows the rows as they are seen */
   .coil .coil-pad {
