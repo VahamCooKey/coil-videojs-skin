@@ -33,7 +33,16 @@ export function ErrorDialog() {
   return (
     <ErrorDialogPrimitive.Root>
       <ErrorDialogPrimitive.Backdrop className={'media-dialog-backdrop'} />
-      <ErrorDialogPrimitive.Popup className={'media-dialog-popup'}>
+      <ErrorDialogPrimitive.Popup
+        className={'media-dialog-popup'}
+        onKeyDown={(event) => {
+          // CONTINUE? is the only control, so Tab stays on it rather than leaving the dialog
+          if (event.key === 'Tab') {
+            event.preventDefault();
+            closeRef.current?.focus({ preventScroll: true });
+          }
+        }}
+      >
         <ErrorDialogPrimitive.Title className={'media-dialog-title'} />
         <div className="coil-err-reason">
           <span>{shortError(message)}</span>

@@ -185,7 +185,7 @@ export function CoilIdleSnake() {
               art.fillStyle = colour;
               art.fillRect(x, y, 1, 1);
             },
-            { tongue: flick, big: T / ART >= 6, colors: C }
+            { tongue: flick, size: T / ART, colors: C }
           )
         );
       }

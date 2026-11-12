@@ -131,7 +131,7 @@ export function CoilLoader() {
               art.fillStyle = colour;
               art.fillRect(x, y, 1, 1);
             },
-            { jaw, colors: C }
+            { jaw, size: T / ART, colors: C }
           )
         );
       }

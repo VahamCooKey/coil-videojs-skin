@@ -1064,3 +1064,127 @@
   visibility: visible;
   opacity: 1;
 }
+
+/* ==== round 4 ======================================================================================================== */
+
+/* ---- SCORE: no +N chip. The digit that changes flashes, and a seek flashes the whole plate ------------------------ */
+.media-skin.coil.coil.coil .coil-score-delta {
+  display: none;
+}
+.media-skin.coil.coil.coil .coil-score .coil-digit {
+  animation:
+    coil-digit-wipe 180ms steps(3),
+    coil-digit-flash 360ms steps(3);
+}
+@keyframes coil-digit-flash {
+  0%,
+  45% {
+    color: var(--coil-ink);
+    background: var(--coil-gold);
+  }
+}
+.media-skin.coil.coil.coil .coil-score[data-flash] {
+  animation: coil-plate-flash 450ms steps(4);
+}
+.media-skin.coil.coil.coil .coil-score[data-flash='gain'] {
+  --coil-flash: var(--coil-gold);
+}
+.media-skin.coil.coil.coil .coil-score[data-flash='loss'] {
+  --coil-flash: var(--coil-red);
+}
+@keyframes coil-plate-flash {
+  0%,
+  50% {
+    box-shadow:
+      0 0 0 3px var(--coil-flash),
+      inset 0 0 0 2px var(--coil-flash);
+    background-color: color-mix(in srgb, var(--coil-flash) 22%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .media-skin.coil.coil.coil .coil-score .coil-digit,
+  .media-skin.coil.coil.coil .coil-score[data-flash] {
+    animation: none;
+  }
+}
+
+/* ---- A and B in forced colours: the system highlight, as on every other control ---------------------------------- */
+@media (forced-colors: active) {
+  .media-skin.coil.coil.coil .coil-ab > .coil-key:has(:focus-visible) .coil-cap {
+    filter: none;
+  }
+  .media-skin.coil.coil.coil :is(.coil-a, .coil-b):focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 3px;
+  }
+  .media-skin.coil.coil.coil :is(.coil-a, .coil-b):focus-visible::after {
+    display: none;
+  }
+}
+
+/* ---- MENU: 44px rows, values at full strength, wide enough for them, no needless scroll ----------------------------- */
+.media-skin.coil.coil.coil .media-menu-popup {
+  box-sizing: content-box; /* the measured height is the content's; the border goes outside it */
+  min-width: min(340px, 90cqi);
+}
+.media-skin.coil.coil.coil :is(.media-menu-item, .media-menu-radio-item, .media-menu-back-item) {
+  min-height: 44px;
+}
+.media-skin.coil.coil.coil .media-menu-hint {
+  opacity: 1;
+  max-width: 65%;
+  color: #cfc8b8;
+}
+.media-skin.coil.coil.coil .media-menu-hint-label {
+  max-width: none;
+}
+.media-skin.coil.coil.coil :is(.media-menu-item, .media-menu-radio-item)[data-highlighted] .media-menu-hint {
+  color: var(--coil-bone);
+}
+/* a list that is cut off says so: a shade at the edge that still has rows behind it */
+.media-skin.coil.coil.coil .media-menu-content {
+  background:
+    linear-gradient(var(--coil-ink) 30%, transparent) top / 100% 24px no-repeat local,
+    linear-gradient(transparent, var(--coil-ink) 70%) bottom / 100% 24px no-repeat local,
+    linear-gradient(rgb(0 0 0 / 0.9), transparent) top / 100% 14px no-repeat scroll,
+    linear-gradient(transparent, rgb(0 0 0 / 0.9)) bottom / 100% 14px no-repeat scroll;
+  background-color: var(--coil-ink);
+}
+
+/* ---- D-pad: in the DOM it reads VOL+, -10, +10, VOL- (top to bottom); the fullscreen row lays it out -10 +10 VOL- VOL+ */
+.media-skin.coil.coil.coil:fullscreen .coil-dpad {
+  reading-flow: flex-visual;
+}
+.media-skin.coil.coil.coil:fullscreen .coil-dpad > .coil-dpad-up {
+  order: 4;
+}
+.media-skin.coil.coil.coil:fullscreen .coil-dpad > .coil-dpad-down {
+  order: 3;
+}
+
+/* ---- CC and PiP keep their slots until the video says whether they are available, so the pad never jumps ---------- */
+.media-skin.coil.coil.coil .coil-pad:not([data-ready]) .coil-key:not(:has(button)) {
+  display: grid;
+  visibility: hidden;
+}
+.media-skin.coil.coil.coil .coil-pad:not([data-ready]) .coil-key:not(:has(button))::before {
+  content: '';
+  width: var(--coil-key);
+  height: var(--coil-key);
+}
+
+/* ---- GAME OVER: every piece of the console dims, also where the pad is unwrapped round the picture ------------------ */
+.media-skin.coil.coil.coil:has(.media-dialog-popup[data-open])
+  :is(.coil-hud, .coil-lane, .coil-ab, .coil-dpad, .coil-options > .coil-key) {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+.media-skin.coil.coil.coil:has(.media-dialog-popup[data-open]) .coil-console > * {
+  opacity: 1;
+  filter: none;
+}
+
+/* ---- the lane owns its touches (see the touchmove handler in console.tsx): no browser pan starts on it ---------- */
+.media-skin.coil.coil.coil :is(.coil-lane, .coil-time-slider) {
+  touch-action: none;
+}

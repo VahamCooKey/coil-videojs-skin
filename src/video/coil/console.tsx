@@ -84,10 +84,12 @@ function VolumeStep({ direction }: { direction: 1 | -1 }) {
       className={`media-button coil-dpad-key coil-dpad-${up ? 'up' : 'down'}`}
       aria-label={up ? 'Volume up' : 'Volume down'}
       aria-disabled={disabled || undefined}
-      onClick={() => {
+      onClick={(event) => {
         if (disabled) return;
         if (muted) {
           if (up) store.setMuted(false);
+          // still muted: show the meter at zero, so the press is answered
+          else event.currentTarget.dispatchEvent(new CustomEvent('coil-vol-show', { bubbles: true }));
           return;
         }
         const next = Math.max(0, Math.min(1, Math.round((volume + direction * 0.1) * 10) / 10));
@@ -138,7 +140,10 @@ function Digits({ text }: { text: string }) {
   );
 }
 
-/** SCORE is the timecode: digit tiles that roll as it adds up, a "+N" chip per bite, and an XP bar toward the goal. */
+/**
+ * SCORE is the timecode: digit tiles that roll as it adds up (the digit that changes flashes), and an XP bar toward the
+ * goal. A seek flashes the whole plate: gold for forward, red for back.
+ */
 function Score() {
   const sec = usePlayer((s) => Math.floor(s.currentTime));
   const duration = usePlayer((s) => s.duration);
@@ -157,16 +162,21 @@ function Score() {
     return () => skin.removeEventListener('coil-score', onScore);
   }, []);
   const delta = gain.delta;
-  const [chip, setChip] = useState(false);
+  // only seeks flash the plate; the every-second bites are shown by the changing digit itself
+  const [flash, setFlash] = useState(0);
   useEffect(() => {
-    if (gain.id === 0) return;
-    setChip(true);
-    const timer = window.setTimeout(() => setChip(false), 900);
+    if (gain.id === 0 || Math.abs(delta) < 3) return;
+    setFlash(delta > 0 ? 1 : -1);
+    const timer = window.setTimeout(() => setFlash(0), 450);
     return () => window.clearTimeout(timer);
-  }, [gain.id]);
+  }, [gain.id, delta]);
 
   return (
-    <div ref={ref} className="coil-hud-cell coil-score">
+    <div
+      ref={ref}
+      className="coil-hud-cell coil-score"
+      data-flash={flash > 0 ? 'gain' : flash < 0 ? 'loss' : undefined}
+    >
       <span className="coil-hud-label" aria-hidden="true">
         SCORE
       </span>
@@ -177,11 +187,6 @@ function Score() {
         aria-hidden="true"
         style={{ width: `${known ? Math.min(100, (sec / duration) * 100) : 0}%` }}
       />
-      {chip && (
-        <span key={`d${gain.id}`} className="coil-score-delta" data-negative={delta < 0 || undefined} aria-hidden="true">
-          {delta > 0 ? `+${delta}` : delta}
-        </span>
-      )}
     </div>
   );
 }
@@ -296,6 +301,20 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
   // the console only covers the picture in fullscreen, and not in the handheld layout of a phone held sideways
   const shown = usePlayer((s) => s.controlsVisible);
   const padRef = useRef<HTMLDivElement>(null);
+  const laneRef = useRef<HTMLDivElement>(null);
+  // A fast touch drag on the lane also builds a browser fling gesture, and the browser then spends the next tap
+  // (on MENU, say) stopping that fling, so the tap never clicks. The lane keeps its touches to itself.
+  useEffect(() => {
+    const lane = laneRef.current;
+    if (!lane) return;
+    const hold = (event: TouchEvent) => {
+      if (event.cancelable) event.preventDefault();
+    };
+    lane.addEventListener('touchmove', hold, { passive: false });
+    return () => lane.removeEventListener('touchmove', hold);
+  }, []);
+  // CC and PiP only know whether they are available once the video has loaded; until then their slots are kept
+  const ready = usePlayer((s) => Number.isFinite(s.duration) && s.duration > 0);
   const handheld = typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-height: 540px) and (min-width: 560px)').matches;
   useCaptionLift(fullscreen && shown && !handheld, padRef);
   const playLabel = ended ? 'A · AGAIN' : paused ? 'A · PLAY' : 'A · PAUSE';
@@ -313,6 +332,7 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
             </div>
 
             <div
+              ref={laneRef}
               className="coil-lane"
               onPointerUpCapture={(event) => {
                 // the slider takes focus for itself as the pointer lets go, so hand it on just after
@@ -326,7 +346,7 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
             </div>
 
             {/* every key flashes when pressed, by mouse, touch or keyboard */}
-            <div ref={padRef} className="coil-pad" onClick={flashKey}>
+            <div ref={padRef} className="coil-pad" data-ready={ready || undefined} onClick={flashKey}>
               <Controls.Group className="coil-ab" aria-label="Playback">
                 <Key label={playLabel} className="coil-key-a">
                   <PlayButtonPrimitive render={<Button />} className="media-play-button coil-a">
@@ -341,11 +361,11 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
               </Controls.Group>
 
               <Controls.Group className="coil-dpad" aria-label="Seek and volume">
+                <VolumeStep direction={1} />
                 <SeekKey seconds={-10} />
                 <span className="coil-dpad-hub" aria-hidden="true" />
                 <SeekKey seconds={10} />
                 <VolumeStep direction={-1} />
-                <VolumeStep direction={1} />
               </Controls.Group>
 
               <Controls.Group className="coil-options" aria-label="Options">
@@ -385,6 +405,23 @@ function VolumeMeter() {
   const muted = usePlayer((s) => s.muted);
   const [shown, setShown] = useState(false);
   const last = useRef({ volume, muted });
+  const ref = useRef<HTMLDivElement>(null);
+  const [poke, setPoke] = useState(0);
+
+  // VOL- while muted changes nothing in the store, so the key asks for the meter directly
+  useEffect(() => {
+    const skin = ref.current?.closest('.media-skin');
+    if (!skin) return;
+    const onShow = () => setPoke((n) => n + 1);
+    skin.addEventListener('coil-vol-show', onShow);
+    return () => skin.removeEventListener('coil-vol-show', onShow);
+  }, []);
+  useEffect(() => {
+    if (!poke) return;
+    setShown(true);
+    const timer = window.setTimeout(() => setShown(false), 1500);
+    return () => window.clearTimeout(timer);
+  }, [poke]);
 
   useEffect(() => {
     if (last.current.volume === volume && last.current.muted === muted) return;
@@ -398,7 +435,7 @@ function VolumeMeter() {
   const level = Math.round(percent / 10);
 
   return (
-    <div className="coil-vol" data-shown={shown || undefined} data-muted={muted || undefined} aria-hidden="true">
+    <div ref={ref} className="coil-vol" data-shown={shown || undefined} data-muted={muted || undefined} aria-hidden="true">
       <span className="coil-vol-label">{muted ? 'MUTE' : 'VOL'}</span>
       <span className="coil-vol-bars">
         {Array.from({ length: 10 }, (_, i) => (

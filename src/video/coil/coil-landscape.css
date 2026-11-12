@@ -215,3 +215,13 @@
     height: 44px;
   }
 }
+
+/* Focus order, sideways: START on the screen first, then the rows as they are seen, and the lane (the bottom row) last */
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
+  .media-skin.coil.coil .coil-screen {
+    reading-order: -1;
+  }
+  .media-skin.coil.coil .coil-lane {
+    reading-order: 1;
+  }
+}

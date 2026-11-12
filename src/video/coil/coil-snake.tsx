@@ -382,7 +382,8 @@ export function CoilSnake() {
             score(-snap(-comboSec));
           }
           springModeUntil = now + 1400;
-          if (!reduce) holdUntil = now + 170;
+          // only the first seek of a run winds up; the rest follow at once, so a burst never lags
+          if (!reduce && !sameRun) holdUntil = now + 170;
         }
       }
       lastTarget = target;
@@ -394,7 +395,7 @@ export function CoilSnake() {
       } else if (now >= holdUntil) {
         // Between timeupdates, glide forward at playback speed so the head never stutters.
         if (!paused && !dragging && dur > 0 && springMode === 'normal') shown += dt / dur;
-        const k = springMode === 'boost' ? 300 : springMode === 'recoil' ? 150 : 170;
+        const k = springMode === 'boost' ? 420 : springMode === 'recoil' ? 150 : 170;
         const zeta = springMode === 'boost' ? 0.9 : springMode === 'recoil' ? 0.48 : 0.82;
         vel += (k * (target - shown) - 2 * Math.sqrt(k) * zeta * vel) * dt;
         shown += vel * dt;
@@ -404,7 +405,7 @@ export function CoilSnake() {
 
       // ---- knot (paused) spring -----------------------------------------------------------------------------------
       // In the first few seconds there is no room behind the head for a knot, so the snake just waits, straight.
-      const knotRoom = Math.max(0, shown * W) - NOSE + G - 8 >= KNOT_SPAN * 0.42;
+      const knotRoom = Math.max(0, shown * W) - NOSE + G - 8 >= KNOT_SPAN * 0.55;
       const knotTarget = paused && started && !ended && !dragging && knotRoom ? 1 : 0;
       if (paused !== wasPaused) {
         if (paused) pausedAt = now;
@@ -606,7 +607,7 @@ export function CoilSnake() {
       const shownSec = shown * dur;
       let nowStage = 0;
       for (let i = 0; i < stages.length; i++) if (shownSec >= stages[i].start - 0.05) nowStage = i;
-      if (stage >= 0 && nowStage > stage && now > quietUntil && !intro && !hidden && gates) {
+      if (stage >= 0 && nowStage > stage && now > quietUntil && !intro && !hidden && gates && !dragging && springMode === 'normal') {
         const gx = (stages[nowStage].start / dur) * W;
         for (let i = floaters.length - 1; i >= 0; i--) if (floaters[i].text.startsWith('STAGE')) floaters.splice(i, 1);
         pop(gx, y0 - 34, `STAGE ${nowStage + 1}`, C.goldHot, 22, now, 1300);
@@ -862,7 +863,7 @@ export function CoilSnake() {
             art.fillStyle = colour;
             art.fillRect(x, y, 1, 1);
           },
-          { jaw: f.jaw, tongue: f.tongue, narrow: f.narrow, big: T * f.scale * sBuf >= 8, colors: C }
+          { jaw: f.jaw, tongue: f.tongue, narrow: f.narrow, size: T * f.scale * sBuf, colors: C }
         );
       });
       out.font = `400 13px ${FONT}`;

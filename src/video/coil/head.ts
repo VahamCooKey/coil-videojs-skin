@@ -36,7 +36,7 @@ export interface HeadOptions {
 }
 
 /** Neck to nose tip, in units of T. */
-export const HEAD_LENGTH = 3.2;
+export const HEAD_LENGTH = 3.8;
 
 export function drawHead(ctx: CanvasRenderingContext2D, o: HeadOptions): void {
   const { T, colors: C } = o;
@@ -46,30 +46,30 @@ export function drawHead(ctx: CanvasRenderingContext2D, o: HeadOptions): void {
   // the skull, from the top of the neck, over the crown to the nose, and back along the upper lip to the jaw hinge
   const skullTop = () => {
     ctx.moveTo(u(-0.06), u(-0.5));
-    ctx.bezierCurveTo(u(0.6), u(-0.5), u(0.9), u(-0.72), u(1.5), u(-0.7));
-    ctx.bezierCurveTo(u(2.25), u(-0.68), u(2.85), u(-0.4), u(3.2), u(-0.06));
-    ctx.lineTo(u(3.22), u(0.1));
+    ctx.bezierCurveTo(u(0.55), u(-0.5), u(0.95), u(-0.92), u(1.75), u(-0.9));
+    ctx.bezierCurveTo(u(2.65), u(-0.88), u(3.4), u(-0.5), u(3.8), u(-0.07));
+    ctx.lineTo(u(3.82), u(0.12));
   };
   const closed = () => {
     ctx.beginPath();
     skullTop();
-    ctx.bezierCurveTo(u(2.7), u(0.42), u(1.9), u(0.6), u(1.2), u(0.6));
-    ctx.bezierCurveTo(u(0.7), u(0.6), u(0.4), u(0.5), u(-0.06), u(0.5));
+    ctx.bezierCurveTo(u(3.2), u(0.55), u(2.2), u(0.82), u(1.4), u(0.8));
+    ctx.bezierCurveTo(u(0.8), u(0.78), u(0.45), u(0.52), u(-0.06), u(0.5));
   };
   const upper = () => {
     ctx.beginPath();
     skullTop();
-    ctx.lineTo(u(1.25), u(0.2));
-    ctx.bezierCurveTo(u(0.9), u(0.52), u(0.5), u(0.5), u(-0.06), u(0.5));
+    ctx.lineTo(u(1.45), u(0.24));
+    ctx.bezierCurveTo(u(1.0), u(0.56), u(0.5), u(0.5), u(-0.06), u(0.5));
   };
   const lower = () => {
     ctx.beginPath();
-    ctx.moveTo(u(0.5), u(0.2));
-    ctx.lineTo(u(3.05), u(0.16));
-    ctx.bezierCurveTo(u(2.6), u(0.44), u(1.9), u(0.6), u(1.2), u(0.6));
-    ctx.bezierCurveTo(u(0.8), u(0.6), u(0.55), u(0.52), u(0.3), u(0.46));
+    ctx.moveTo(u(0.55), u(0.24));
+    ctx.lineTo(u(3.6), u(0.2));
+    ctx.bezierCurveTo(u(3.05), u(0.6), u(2.2), u(0.82), u(1.4), u(0.8));
+    ctx.bezierCurveTo(u(0.95), u(0.8), u(0.62), u(0.6), u(0.32), u(0.5));
   };
-  const hinge = { x: u(1.0), y: u(0.24) };
+  const hinge = { x: u(1.15), y: u(0.28) };
   const open = jaw > 0.02;
 
   ctx.save();
@@ -101,10 +101,10 @@ export function drawHead(ctx: CanvasRenderingContext2D, o: HeadOptions): void {
     ctx.fill();
     // inside of the mouth
     ctx.beginPath();
-    ctx.moveTo(u(0.9), u(0.22));
-    ctx.lineTo(u(2.9), u(0.19));
-    ctx.lineTo(u(2.5), u(0.3));
-    ctx.lineTo(u(1.2), u(0.34));
+    ctx.moveTo(u(1.0), u(0.26));
+    ctx.lineTo(u(3.4), u(0.23));
+    ctx.lineTo(u(2.95), u(0.36));
+    ctx.lineTo(u(1.35), u(0.4));
     ctx.fillStyle = '#5a1f24';
     ctx.fill();
     ctx.restore();
@@ -125,10 +125,10 @@ export function drawHead(ctx: CanvasRenderingContext2D, o: HeadOptions): void {
   ctx.beginPath();
   ctx.moveTo(u(-0.2), u(-0.09));
   ctx.lineTo(u(-0.2), u(-0.41));
-  ctx.bezierCurveTo(u(0.7), u(-0.42), u(1.0), u(-0.62), u(1.5), u(-0.6));
-  ctx.bezierCurveTo(u(2.2), u(-0.58), u(2.8), u(-0.32), u(3.15), u(-0.04));
-  ctx.lineTo(u(3.15), u(0.03));
-  ctx.bezierCurveTo(u(2.5), u(-0.06), u(1.6), u(-0.1), u(-0.2), u(0.09));
+  ctx.bezierCurveTo(u(0.65), u(-0.44), u(1.1), u(-0.82), u(1.75), u(-0.8));
+  ctx.bezierCurveTo(u(2.6), u(-0.78), u(3.3), u(-0.45), u(3.72), u(-0.05));
+  ctx.lineTo(u(3.72), u(0.03));
+  ctx.bezierCurveTo(u(2.95), u(-0.08), u(1.9), u(-0.14), u(-0.2), u(0.09));
   ctx.fillStyle = C.scale2;
   ctx.globalAlpha = 0.55; // a quieter crown than the body's back
   ctx.fill();
@@ -136,9 +136,7 @@ export function drawHead(ctx: CanvasRenderingContext2D, o: HeadOptions): void {
 
   // the iridescent stripe carries on from the body, over the crown, and thins out at the nose
   const stripeY = (x: number) => {
-    const k = Math.max(0, Math.min(1, x / 3.1));
-    const arch = Math.sin(Math.min(1, x / 1.5) * Math.PI * 0.5) * (1 - Math.max(0, (x - 1.5) / 1.6) ** 1.4);
-    return -0.24 - 0.2 * arch + 0.2 * k * k;
+    return -0.24 - 0.28 * Math.sin(Math.min(1, Math.max(0, x) / 1.6) * Math.PI * 0.5);
   };
   for (let x = -0.2; x < 3.05; x += 0.1) {
     const k = Math.max(0, x / 3.05);
@@ -155,11 +153,11 @@ export function drawHead(ctx: CanvasRenderingContext2D, o: HeadOptions): void {
 
 
   // a soft shade under the jaw line gives the head its form without a hard edge
-  const shade = ctx.createLinearGradient(0, u(0.1), 0, u(0.62));
+  const shade = ctx.createLinearGradient(0, u(0.12), 0, u(0.82));
   shade.addColorStop(0, 'rgba(10,11,13,0)');
   shade.addColorStop(1, 'rgba(10,11,13,0.4)');
   ctx.fillStyle = shade;
-  ctx.fillRect(u(0.9), u(0.1), u(2.4), u(0.6));
+  ctx.fillRect(u(1.0), u(0.12), u(2.8), u(0.75));
   ctx.restore();
 
   if (!o.bare) {
@@ -168,23 +166,23 @@ export function drawHead(ctx: CanvasRenderingContext2D, o: HeadOptions): void {
   ctx.strokeStyle = C.ink;
   ctx.lineWidth = Math.max(1, T * 0.07);
   ctx.beginPath();
-  ctx.moveTo(u(1.85), u(-0.4));
-  ctx.lineTo(u(2.62), u(-0.3));
+  ctx.moveTo(u(2.05), u(-0.66));
+  ctx.lineTo(u(3.0), u(-0.52));
   ctx.stroke();
   const ey = o.narrow ? 0.055 : 0.1;
   ctx.beginPath();
-  ctx.ellipse(u(2.22), u(-0.22), u(0.19), u(ey), 0.12, 0, Math.PI * 2);
+  ctx.ellipse(u(2.55), u(-0.36), u(0.19), u(ey), 0.12, 0, Math.PI * 2);
   ctx.fillStyle = C.gold;
   ctx.fill();
   ctx.fillStyle = C.ink;
-  ctx.fillRect(u(2.2), u(-0.22 - ey), Math.max(1, u(0.055)), u(ey * 2));
+  ctx.fillRect(u(2.53), u(-0.36 - ey), Math.max(1, u(0.055)), u(ey * 2));
   // nostril
-  ctx.fillRect(u(2.98), u(-0.07), Math.max(1, u(0.07)), Math.max(1, u(0.05)));
+  ctx.fillRect(u(3.55), u(-0.08), Math.max(1, u(0.07)), Math.max(1, u(0.05)));
 
   if (open) {
     // fangs
     ctx.fillStyle = '#ECE8DF';
-    for (const fx of [2.75, 2.35]) {
+    for (const fx of [3.3, 2.85]) {
       ctx.beginPath();
       ctx.moveTo(u(fx - 0.07), u(0.14));
       ctx.lineTo(u(fx + 0.07), u(0.13));
@@ -194,8 +192,8 @@ export function drawHead(ctx: CanvasRenderingContext2D, o: HeadOptions): void {
   } else {
     // the line of the mouth
     ctx.beginPath();
-    ctx.moveTo(u(3.2), u(0.1));
-    ctx.quadraticCurveTo(u(2.2), u(0.2), u(1.3), u(0.22));
+    ctx.moveTo(u(3.82), u(0.13));
+    ctx.quadraticCurveTo(u(2.6), u(0.3), u(1.45), u(0.32));
     ctx.strokeStyle = C.ink;
     ctx.lineWidth = Math.max(1, T * 0.06);
     ctx.stroke();
@@ -206,11 +204,11 @@ export function drawHead(ctx: CanvasRenderingContext2D, o: HeadOptions): void {
     ctx.lineWidth = Math.max(1, T * 0.07);
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(u(3.18), u(0.08));
-    ctx.lineTo(u(3.75), u(0.1));
-    ctx.lineTo(u(4.0), u(-0.04));
-    ctx.moveTo(u(3.75), u(0.1));
-    ctx.lineTo(u(4.0), u(0.22));
+    ctx.moveTo(u(3.8), u(0.1));
+    ctx.lineTo(u(4.4), u(0.12));
+    ctx.lineTo(u(4.65), u(-0.04));
+    ctx.moveTo(u(4.4), u(0.12));
+    ctx.lineTo(u(4.65), u(0.28));
     ctx.stroke();
   }
 
@@ -227,7 +225,7 @@ export function drawHead(ctx: CanvasRenderingContext2D, o: HeadOptions): void {
 export function drawPixelFace(
   at: (lx: number, ly: number) => [number, number],
   px: (x: number, y: number, colour: string) => void,
-  o: { jaw?: number; tongue?: boolean; narrow?: boolean; big?: boolean; colors: HeadColors }
+  o: { jaw?: number; tongue?: boolean; narrow?: boolean; size: number; colors: HeadColors }
 ): void {
   const C = o.colors;
   const jaw = Math.max(0, Math.min(1, o.jaw ?? 0));
@@ -239,51 +237,56 @@ export function drawPixelFace(
   };
 
   // brow ridge, a hard line over the eye
-  line(1.75, -0.44, 2.6, -0.34, C.ink);
+  line(2.05, -0.7, 3.0, -0.56, C.ink);
 
-  // the eye: gold with a vertical slit and a glint; narrowed to a slot under a heavy lid when straining
-  const [ex, ey] = at(2.2, -0.2);
-  const gold = C.gold;
-  const hot = '#fff3c4';
-  const shade = '#b87400';
-  const eye = o.big
-    ? o.narrow
-      ? ['iiii', 'gikg', '....']
-      : ['hgig', 'ggig', 'sgis']
-    : o.narrow
-      ? ['iii', 'gig']
-      : ['hig', 'gig'];
-  const cols: Record<string, string> = { i: C.ink, g: gold, h: hot, s: shade, k: C.ink };
+  // The eye: gold, with a black vertical slit, a bright glint top left and a darker gold bottom right. It is drawn as a
+  // little sprite whose size follows the snake's (`size` is the body's width in art pixels), so it stays clear.
+  // When straining, it narrows to a slit under a heavy lid.
+  const eye =
+    o.size >= 8
+      ? o.narrow
+        ? ['iiiii', 'ggkgg']
+        : ['.gkg.', 'hgkgg', 'ggkgs', '.gkg.']
+      : o.size >= 5.5
+        ? o.narrow
+          ? ['iii', 'gkg']
+          : ['gkg', 'hkg', 'gks']
+        : o.narrow
+          ? ['iii', 'gkg']
+          : ['hkg', 'gks'];
+  const cols: Record<string, string> = { i: C.ink, g: C.gold, h: '#fff3c4', s: '#b87400', k: C.ink };
+  const [ex, ey] = at(2.55, -0.38);
   const ox = Math.floor(eye[0].length / 2);
+  const oy = Math.floor(eye.length / 2);
   eye.forEach((row, r) => {
     for (let c = 0; c < row.length; c++) {
       const key = row[c];
-      if (key !== '.') px(ex - ox + c, ey - 1 + r, cols[key]);
+      if (key !== '.') px(ex - ox + c, ey - oy + r, cols[key]);
     }
   });
 
   // nostril
-  const [nx, ny] = at(2.95, -0.08);
+  const [nx, ny] = at(3.55, -0.07);
   px(nx, ny, C.ink);
 
   if (jaw > 0.05) {
     // fangs hang from the upper jaw, longer as the mouth opens wider
     const long = jaw > 0.5 ? 3 : 2;
-    for (const fx of [2.78, 2.38]) {
-      const [x, y] = at(fx, 0.16);
+    for (const fx of [3.32, 2.88]) {
+      const [x, y] = at(fx, 0.2);
       for (let k = 0; k < long; k++) px(x, y + k, '#ece8df');
     }
   } else {
-    // the line of the mouth, from the nose back past the eye, with a darker corner
-    line(3.12, 0.12, 1.3, 0.24, C.ink);
-    const [cx, cy] = at(1.3, 0.24);
+    // the line of the mouth, from the nose back under the eye, with a darker corner
+    line(3.78, 0.14, 1.45, 0.33, C.ink);
+    const [cx, cy] = at(1.45, 0.33);
     px(cx - 1, cy, C.ink);
   }
 
   if (o.tongue) {
     const red = '#e0613f';
-    line(3.2, 0.1, 3.7, 0.1, red);
-    line(3.7, 0.1, 3.95, -0.06, red);
-    line(3.7, 0.1, 3.95, 0.26, red);
+    line(3.8, 0.12, 4.3, 0.12, red);
+    line(4.3, 0.12, 4.55, -0.04, red);
+    line(4.3, 0.12, 4.55, 0.28, red);
   }
 }
