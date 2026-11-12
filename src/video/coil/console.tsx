@@ -47,7 +47,13 @@ import { StageGatesContext, stageAt, useStages } from './stages';
 function Key({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
     <div className={`coil-key${className ? ` ${className}` : ''}`}>
-      {children}
+      {/* A and B are cut to an eight-sided shape, which would also cut off their drop shadow: the shadow goes on this
+          cap around the key instead */}
+      {className?.includes('coil-key-a') || className?.includes('coil-key-b') ? (
+        <span className="coil-cap">{children}</span>
+      ) : (
+        children
+      )}
       <span className="coil-key-label" aria-hidden="true">
         {/* "A · PLAY": the letter can be dropped where the pad is too narrow for both */}
         {label.includes(' · ') ? (
