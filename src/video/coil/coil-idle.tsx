@@ -8,7 +8,8 @@
 
 import { useEffect, useRef } from 'react';
 
-import { drawHead } from './head';
+import { drawHead, drawPixelFace } from './head';
+import { makeBuffer, PIXEL } from './pixel';
 import { BAND_EVERY, C, SHEEN, SHEEN_PERIOD } from './coil-snake';
 
 const W = 360;
@@ -37,12 +38,17 @@ export function CoilIdleSnake() {
 
   useEffect(() => {
     const canvas = ref.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
+    const out = canvas?.getContext('2d');
+    if (!canvas || !out) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = W * dpr;
     canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // pixel art: drawn smooth into a buffer where one art pixel is 3 units, snapped to the palette, blown up
+    const ART = 3;
+    const buf = makeBuffer();
+    buf.resize((W / ART) * PIXEL, (H / ART) * PIXEL);
+    const ctx = buf.ctx;
+    ctx.setTransform(1 / ART, 0, 0, 1 / ART, 0, 0);
 
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const start = performance.now();
@@ -153,17 +159,36 @@ export function CoilIdleSnake() {
       const flick = !reduce && ((beat > 0.3 && beat < 0.5) || (beat > 0.66 && beat < 0.86));
       const n0 = pts[0];
       const n1 = pts[2];
+      const headRot = Math.atan2(n0.y - n1.y, n0.x - n1.x);
       ctx.save();
       ctx.translate(n0.x, n0.y);
-      ctx.rotate(Math.atan2(n0.y - n1.y, n0.x - n1.x));
+      ctx.rotate(headRot);
       drawHead(ctx, {
         T,
+        bare: true,
         tongue: flick,
         sheenAt: (d) => SHEEN[Math.floor(((((d - shift) / SHEEN_PERIOD) % 1) + 1) * 96) % 96],
         bandAt: (d) => ((d % BAND_EVERY) + BAND_EVERY) % BAND_EVERY < 3.4,
         colors: { ...C, rim: 'rgba(236,232,223,0.62)' },
       });
       ctx.restore();
+      {
+        const hx = n0.x;
+        const hy = n0.y;
+        const rot = headRot;
+        const cs = Math.cos(rot) * T;
+        const sn = Math.sin(rot) * T;
+        buf.present(out, ART * dpr, (art) =>
+          drawPixelFace(
+            (lx, ly) => [Math.round((hx + lx * cs - ly * sn) / ART), Math.round((hy + lx * sn + ly * cs) / ART)],
+            (x, y, colour) => {
+              art.fillStyle = colour;
+              art.fillRect(x, y, 1, 1);
+            },
+            { tongue: flick, big: T / ART >= 6, colors: C }
+          )
+        );
+      }
 
       if (!reduce) raf = requestAnimationFrame(draw);
     };

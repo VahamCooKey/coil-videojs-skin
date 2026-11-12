@@ -670,3 +670,124 @@
     width: min(132px, 30lvh);
   }
 }
+
+/* ---- audit round 2 ------------------------------------------------------------------------------------------------ */
+
+/* GAME OVER: one button, centred, that also tries again */
+.media-skin.coil.coil.coil .media-dialog-close {
+  justify-self: center;
+}
+/* while an error is up, the console is out of play and looks it */
+.media-skin.coil.coil:has(.media-dialog-popup[data-open]) .coil-console > * {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+/* the pad: A/B, option keys, then the D-pad, left to right, whatever order they come in (not in the sideways
+   handheld layout, which places the keys round the picture itself) */
+@media not ((orientation: landscape) and (max-height: 540px) and (min-width: 560px)) {
+@container media-root (min-width: 561px) {
+  .media-skin.coil.coil .coil-pad {
+    reading-flow: grid-columns;
+  }
+  .media-skin.coil.coil .coil-pad > .coil-ab {
+    grid-area: 1 / 1;
+  }
+  .media-skin.coil.coil .coil-pad > .coil-options {
+    grid-area: 1 / 2;
+  }
+  .media-skin.coil.coil .coil-pad > .coil-dpad {
+    grid-area: 1 / 3;
+  }
+}
+}
+
+/* phone held sideways: every key a comfortable 44 px */
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
+  .media-skin.coil.coil.coil {
+    --coil-key: 44px;
+  }
+  .media-skin.coil.coil.coil :is(.coil-option, .coil-option-menu .media-button) {
+    width: 52px;
+    height: 44px;
+  }
+  .media-skin.coil.coil.coil .coil-stage,
+  .media-skin.coil.coil.coil .coil-hud-cell {
+    min-height: 44px;
+  }
+  .media-skin.coil.coil.coil .coil-a {
+    width: 56px;
+    height: 56px;
+  }
+  .media-skin.coil.coil.coil .coil-b {
+    width: 44px;
+    height: 44px;
+  }
+}
+@media (orientation: landscape) and (max-height: 380px) and (min-width: 560px) {
+  .media-skin.coil.coil.coil .coil-hud {
+    padding-block: 2px;
+  }
+  .media-skin.coil.coil.coil .coil-time-slider {
+    height: 40px;
+  }
+}
+
+/* the seek preview stays inside the player, and never widens the page */
+.media-skin.coil.coil {
+  overflow-x: clip;
+}
+.media-skin.coil.coil .media-time-slider-preview-meta {
+  max-width: 100%;
+  overflow: hidden;
+}
+.media-skin.coil.coil .media-time-slider-chapter-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* while the snake is being dragged, the pause plate steps aside so the preview can be read */
+.media-skin.coil.coil:has(.coil-time-slider[data-dragging]) .coil-pause {
+  visibility: hidden;
+}
+
+/* forced colours: focus in the system's own highlight colour */
+@media (forced-colors: active) {
+  .media-skin.coil.coil.coil :focus-visible,
+  .media-skin.coil.coil.coil .coil-time-slider .media-time-slider-thumb:focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+/* a focused key's legend is always dark on gold, also when its key is lit (captions on, menu open) */
+.media-skin.coil.coil.coil .coil-key:has(:focus-visible) .coil-key-label {
+  color: var(--coil-ink);
+  background: var(--coil-gold);
+}
+
+/* menus: room for the values, and every row left-aligned */
+.media-skin.coil.coil .media-menu-popup {
+  min-width: min(300px, 90cqi);
+}
+.media-skin.coil.coil :is(.media-menu-radio-item, .media-menu-item) {
+  justify-content: space-between;
+  text-align: start;
+}
+.media-skin.coil.coil .media-menu-hint {
+  min-width: 0;
+  max-width: 60%;
+}
+
+/* STAGE's lamp is a little flag: gold when the flags are on the lane, an empty outline when they are hidden */
+.media-skin.coil.coil .coil-stage-led,
+.media-skin.coil.coil .coil-stage[aria-pressed='true'] .coil-stage-led {
+  width: 10px;
+  height: 11px;
+  border: 0;
+  background: #4a515b;
+  clip-path: polygon(0 0, 20% 0, 20% 6%, 100% 28%, 20% 52%, 20% 100%, 0 100%);
+}
+.media-skin.coil.coil .coil-stage[aria-pressed='true'] .coil-stage-led {
+  background: var(--coil-gold);
+}

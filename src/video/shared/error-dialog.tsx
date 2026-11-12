@@ -11,7 +11,17 @@ export function ErrorDialog() {
       <ErrorDialogPrimitive.Popup className={'media-dialog-popup'}>
         <ErrorDialogPrimitive.Title className={'media-dialog-title'} />
         <ErrorDialogPrimitive.Description className={'media-dialog-description'} />
-        <ErrorDialogPrimitive.Close render={<Button />} className={'media-dialog-close'} />
+        <ErrorDialogPrimitive.Close
+          render={<Button />}
+          className={'media-dialog-close'}
+          aria-label="Continue: reload the video"
+          onClick={(event) => {
+            // HISS: closing the error also tries again, so recovery is one step
+            event.currentTarget.dispatchEvent(new CustomEvent('coil-retry', { bubbles: true }));
+          }}
+        >
+          CONTINUE?
+        </ErrorDialogPrimitive.Close>
       </ErrorDialogPrimitive.Popup>
     </ErrorDialogPrimitive.Root>
   );

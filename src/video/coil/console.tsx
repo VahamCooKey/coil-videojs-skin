@@ -151,7 +151,13 @@ function Score() {
     return () => skin.removeEventListener('coil-score', onScore);
   }, []);
   const delta = gain.delta;
-  const chip = gain.id > 0;
+  const [chip, setChip] = useState(false);
+  useEffect(() => {
+    if (gain.id === 0) return;
+    setChip(true);
+    const timer = window.setTimeout(() => setChip(false), 900);
+    return () => window.clearTimeout(timer);
+  }, [gain.id]);
 
   return (
     <div ref={ref} className="coil-hud-cell coil-score">
@@ -204,6 +210,7 @@ function StageBadge({ gates, onToggle }: { gates: boolean; onToggle: () => void 
     <button
       type="button"
       className="media-button coil-stage"
+      title={gates ? 'Hide the stage flags on the lane' : 'Show the stage flags on the lane'}
       aria-pressed={gates}
       aria-label={`Stage gates. Stage ${index + 1} of ${stages.length}: ${stages[index].title}`}
       onClick={onToggle}
@@ -327,6 +334,14 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
                 </Key>
               </Controls.Group>
 
+              <Controls.Group className="coil-dpad" aria-label="Seek and volume">
+                <SeekKey seconds={-10} />
+                <span className="coil-dpad-hub" aria-hidden="true" />
+                <SeekKey seconds={10} />
+                <VolumeStep direction={-1} />
+                <VolumeStep direction={1} />
+              </Controls.Group>
+
               <Controls.Group className="coil-options" aria-label="Options">
                 <Key label="CC">
                   <CaptionsButton className="coil-option" />
@@ -346,14 +361,6 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
                     <FullscreenExitIcon className="media-button-icon media-fullscreen-button-exit-icon" />
                   </FullscreenButtonPrimitive>
                 </Key>
-              </Controls.Group>
-
-              <Controls.Group className="coil-dpad" aria-label="Seek and volume">
-                <SeekKey seconds={-10} />
-                <span className="coil-dpad-hub" aria-hidden="true" />
-                <SeekKey seconds={10} />
-                <VolumeStep direction={-1} />
-                <VolumeStep direction={1} />
               </Controls.Group>
             </div>
           </StageGatesContext.Provider>
@@ -441,6 +448,16 @@ export function CoilScreenOverlay() {
   // Once the error dialog is closed the video is still broken, so the screen says so instead of offering START.
   const [failed, setFailed] = useState(false);
   useEffect(() => {
+    const skin = ref.current?.closest('.media-skin');
+    if (!skin) return;
+    const onRetry = () => {
+      setFailed(false);
+      setBegun(false);
+    };
+    skin.addEventListener('coil-retry', onRetry);
+    return () => skin.removeEventListener('coil-retry', onRetry);
+  }, []);
+  useEffect(() => {
     if (error) setFailed(true);
   }, [error]);
   useEffect(() => {
@@ -468,6 +485,17 @@ export function CoilScreenOverlay() {
     // the skin mounts the media again and plays it
     ref.current?.dispatchEvent(new CustomEvent('coil-retry', { bubbles: true }));
   };
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const active = document.activeElement;
+      if (active && active !== document.body && active.isConnected) return;
+      const skin = ref.current?.closest<HTMLElement>('.media-skin');
+      const target = state === 'failed' ? skin?.querySelector<HTMLElement>('.coil-overlay .coil-start') : state === 'start' ? null : skin?.querySelector<HTMLElement>('.coil-a');
+      (target ?? skin)?.focus({ preventScroll: true });
+    }, 60);
+    return () => window.clearTimeout(t);
+  }, [state]);
 
   return (
     <div ref={ref} className="coil-overlay" data-state={state} onClick={keepFocus}>

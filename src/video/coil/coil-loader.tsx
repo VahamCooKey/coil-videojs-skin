@@ -8,7 +8,8 @@
 import { useEffect, useRef } from 'react';
 
 import { BAND_EVERY, C, SHEEN, SHEEN_PERIOD } from './coil-snake';
-import { drawHead, HEAD_LENGTH } from './head';
+import { drawHead, drawPixelFace, HEAD_LENGTH } from './head';
+import { makeBuffer, PIXEL } from './pixel';
 
 const SIZE = 132;
 const T = 10;
@@ -26,12 +27,17 @@ export function CoilLoader() {
 
   useEffect(() => {
     const canvas = ref.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
+    const out = canvas?.getContext('2d');
+    if (!canvas || !out) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = SIZE * dpr;
     canvas.height = SIZE * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // pixel art: drawn smooth into a buffer where one art pixel is 2 units, snapped to the palette, blown up
+    const ART = 2;
+    const buf = makeBuffer();
+    buf.resize((SIZE / ART) * PIXEL, (SIZE / ART) * PIXEL);
+    const ctx = buf.ctx;
+    ctx.setTransform(1 / ART, 0, 0, 1 / ART, 0, 0);
 
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const start = performance.now();
@@ -100,15 +106,35 @@ export function CoilLoader() {
       // along the path at the neck: the ring's tangent, tipped by the slope of the bend it is on (kept gentle, so
       // the head steers rather than flicks)
       const slope = reduce ? 0 : ((bend(a + 0.01, t) - bend(a - 0.01, t)) / 0.02) * WAVE * (8 / 26);
-      ctx.rotate(a + Math.PI / 2 + HEAD_SPAN * 0.3 - Math.atan(slope / R));
+      const headRot = a + Math.PI / 2 + HEAD_SPAN * 0.3 - Math.atan(slope / R);
+      const jaw = reduce ? 0.6 : 0.25 + 0.75 * snap;
+      ctx.rotate(headRot);
       drawHead(ctx, {
         T,
-        jaw: reduce ? 0.6 : 0.25 + 0.75 * snap,
+        bare: true,
+        jaw,
         sheenAt: (d) => SHEEN[Math.floor(((((d - shift) / SHEEN_PERIOD) % 1) + 1) * 96) % 96],
         bandAt: () => false,
         colors: { ...C, rim: RIM },
       });
       ctx.restore();
+      {
+        const hx = neck.x;
+        const hy = neck.y;
+        const rot = headRot;
+        const cs = Math.cos(rot) * T;
+        const sn = Math.sin(rot) * T;
+        buf.present(out, ART * dpr, (art) =>
+          drawPixelFace(
+            (lx, ly) => [Math.round((hx + lx * cs - ly * sn) / ART), Math.round((hy + lx * sn + ly * cs) / ART)],
+            (x, y, colour) => {
+              art.fillStyle = colour;
+              art.fillRect(x, y, 1, 1);
+            },
+            { jaw, colors: C }
+          )
+        );
+      }
 
       if (!reduce) raf = requestAnimationFrame(draw);
     };

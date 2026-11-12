@@ -19,7 +19,8 @@
 import { usePlayer } from '@videojs/react/video';
 import { useContext, useEffect, useRef } from 'react';
 
-import { drawHead as paintHead, HEAD_LENGTH } from './head';
+import { drawHead as paintHead, drawPixelFace, HEAD_LENGTH } from './head';
+import { makeBuffer, PIXEL } from './pixel';
 import { StageGatesContext, useStages } from './stages';
 
 type Pose = 'rest' | 'strain' | 'strike' | 'tongue';
@@ -194,8 +195,13 @@ export function CoilSnake() {
     const canvas = canvasRef.current;
     const root = canvas?.parentElement;
     if (!canvas || !root) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // The snake, dots and flags are drawn into a small buffer and shown as hard pixels; the score pops are drawn
+    // over them on the real canvas, in the pixel font, so their lettering stays sharp.
+    const out = canvas.getContext('2d');
+    if (!out) return;
+    const buf = makeBuffer();
+    const ctx = buf.ctx;
+    let dprNow = 1;
 
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -215,10 +221,15 @@ export function CoilSnake() {
       G = (parseFloat(css.getPropertyValue('--coil-gutter')) || 66) / K;
       W = r.width / K;
       H = r.height / K;
+      dprNow = dpr;
       canvas.width = Math.round((W + G) * K * dpr);
       canvas.height = Math.round(H * K * dpr);
-      ctx.setTransform(dpr * K, 0, 0, dpr * K, G * K * dpr, 0);
+      buf.resize((W + G) * K, H * K);
+      const s = K / PIXEL;
+      ctx.setTransform(s, 0, 0, s, G * s, 0);
+      out.setTransform(dpr * K, 0, 0, dpr * K, G * K * dpr, 0);
       ctx.direction = 'ltr'; // time and numbers read left to right in every language
+      out.direction = 'ltr';
     };
     const ro = new ResizeObserver(resize);
     ro.observe(root);
@@ -249,6 +260,8 @@ export function CoilSnake() {
     let introAt = -1e9;
     let wasStarted = live.current.started;
     let stage = -1; // index of the stage the head is in
+    let comboSec = 0; // seconds added up over a burst of seeks
+    let comboAt = -1e9;
     let calmSince = performance.now(); // when the knotted snake last came to rest
     let begun = live.current.started; // stays true once playback has started, even back at 0:00
     let lastDuration = 0;
@@ -348,6 +361,10 @@ export function CoilSnake() {
           stage = -1;
           spatAt.clear();
         } else if (Math.abs(jumpSec) >= 3) {
+          // seeks in quick succession add up into one pop: +10 +10 +10 reads +30
+          const sameRun = now - comboAt < 900 && Math.sign(jumpSec) === Math.sign(comboSec);
+          comboSec = sameRun ? comboSec + jumpSec : jumpSec;
+          comboAt = now;
           quietUntil = now + 900;
           floaters.length = 0;
           const from = Math.max(minNose, shown * W);
@@ -355,14 +372,14 @@ export function CoilSnake() {
             boostAt = now;
             gulpStart = now + 170;
             springMode = 'boost';
-            pop(from + 10, y0 - 30, `+${snap(jumpSec)}`, C.gold, 30, now, 1200);
+            pop(from + 10, y0 - 30, `+${snap(comboSec)}`, C.gold, 30, now, 1200);
             pop(from + 10, y0 + 40, 'BOOST', C.goldHot, 18, now, 800);
-            score(snap(jumpSec));
+            score(snap(comboSec));
           } else {
             coughAt = now;
             springMode = 'recoil';
-            pop(from, y0 - 30, `-${snap(-jumpSec)}`, C.red, 30, now, 1200);
-            score(-snap(-jumpSec));
+            pop(from, y0 - 30, `-${snap(-comboSec)}`, C.red, 30, now, 1200);
+            score(-snap(-comboSec));
           }
           springModeUntil = now + 1400;
           if (!reduce) holdUntil = now + 170;
@@ -591,14 +608,13 @@ export function CoilSnake() {
       for (let i = 0; i < stages.length; i++) if (shownSec >= stages[i].start - 0.05) nowStage = i;
       if (stage >= 0 && nowStage > stage && now > quietUntil && !intro && !hidden && gates) {
         const gx = (stages[nowStage].start / dur) * W;
+        for (let i = floaters.length - 1; i >= 0; i--) if (floaters[i].text.startsWith('STAGE')) floaters.splice(i, 1);
         pop(gx, y0 - 34, `STAGE ${nowStage + 1}`, C.goldHot, 22, now, 1300);
         if (!reduce) burst(gx, y0 - 20, 12, C.goldHot, now);
       }
       stage = nowStage;
+      const flagNumbers: { x: number; y: number; n: number }[] = [];
       if (gates && dur > 0) {
-        ctx.font = `400 13px ${FONT}`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
         for (let i = 1; i < stages.length; i++) {
           const gx = Math.round((stages[i].start / dur) * W);
           const passed = i <= nowStage;
@@ -607,8 +623,7 @@ export function CoilSnake() {
           ctx.fillRect(gx - 1, top, 2, y0 + 14 - top); // post
           ctx.fillRect(gx - 4, y0 + 13, 8, 3); // foot
           ctx.fillRect(gx + 1, top, 15, 13); // flag
-          ctx.fillStyle = C.ink;
-          ctx.fillText(String(i + 1), gx + 8.5, top + 7);
+          flagNumbers.push({ x: gx + 8.5, y: top + 7, n: i + 1 });
         }
       }
 
@@ -633,7 +648,7 @@ export function CoilSnake() {
         const mag = hov > 0.01 && !reduce ? 1 + 1.1 * hov * Math.exp(-(((px - hoverX) / 30) ** 2)) : 1;
         // capped so neighbours never merge into one bar
         let size = Math.min((lit ? (big ? 6 : 4) : big ? 4 : 2.5) * s * mag, Math.max(6, gap * 1.35));
-        let color = lit ? C.gold : 'rgba(236,232,223,0.36)';
+        let color = lit ? C.gold : 'rgba(236,232,223,0.55)';
         let glow = lit ? 6 : 0;
         // just lit: a short white flash, one pellet after another
         const since = litF - k;
@@ -677,6 +692,7 @@ export function CoilSnake() {
       }
 
       if (hidden) {
+        buf.present(out, PIXEL * dprNow);
         root.style.setProperty('--coil-head-x', `${minNose * K}px`);
         root.style.setProperty('--coil-head-y', `${y0 * K}px`);
         return;
@@ -785,18 +801,22 @@ export function CoilSnake() {
       const shake = strain > 0 ? Math.sin(now / 70) * 0.08 * strain : 0; // only the head shakes, slowly
       const sway = atRest ? Math.sin(idleT * 1.3) * 0.05 * (1 - strain) + shake : 0;
       const jawOpen = pose === 'strike' ? 1 : pose === 'strain' ? 0.22 + 0.1 * Math.sin(now / 60) : 0;
+      let face: { x: number; y: number; rot: number; scale: number; jaw: number; tongue: boolean; narrow: boolean } | null = null;
       const drawHead = (x: number, y: number, alpha: number) => {
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.translate(x, y);
-        ctx.rotate(angle + sway - (0.05 + 0.1 * Math.min(1, jawOpen)) * (1 - e));
+        const rot = angle + sway - (0.05 + 0.1 * Math.min(1, jawOpen)) * (1 - e);
+        ctx.rotate(rot);
         ctx.scale(bite, bite);
+        if (alpha === 1) face = { x, y, rot, scale: bite, jaw: jawOpen, tongue: pose === 'tongue', narrow: pose === 'strain' };
         paintHead(ctx, {
           T,
           jaw: jawOpen,
           tongue: pose === 'tongue',
           narrow: pose === 'strain',
           outline: alpha === 1,
+          bare: true,
           sheenAt: (d) => SHEEN[Math.floor(((((d - sheenShift) / SHEEN_PERIOD) % 1) + 1) * 96) % 96],
           bandAt: (d) => ((d % BAND_EVERY) + BAND_EVERY) % BAND_EVERY < 3.2,
           colors: C,
@@ -830,8 +850,29 @@ export function CoilSnake() {
       }
       ctx.globalAlpha = 1;
 
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'alphabetic';
+      const sBuf = K / PIXEL;
+      buf.present(out, PIXEL * dprNow, (art) => {
+        if (!face) return;
+        const f = face;
+        const cs = Math.cos(f.rot) * f.scale * T;
+        const sn = Math.sin(f.rot) * f.scale * T;
+        drawPixelFace(
+          (lx, ly) => [Math.round((f.x + lx * cs - ly * sn + G) * sBuf), Math.round((f.y + lx * sn + ly * cs) * sBuf)],
+          (x, y, colour) => {
+            art.fillStyle = colour;
+            art.fillRect(x, y, 1, 1);
+          },
+          { jaw: f.jaw, tongue: f.tongue, narrow: f.narrow, big: T * f.scale * sBuf >= 8, colors: C }
+        );
+      });
+      out.font = `400 13px ${FONT}`;
+      out.textAlign = 'center';
+      out.textBaseline = 'middle';
+      out.fillStyle = C.ink;
+      for (const f of flagNumbers) out.fillText(String(f.n), f.x, f.y);
+
+      out.textAlign = 'center';
+      out.textBaseline = 'alphabetic';
       for (let i = floaters.length - 1; i >= 0; i--) {
         const f = floaters[i];
         const t = (now - f.born) / f.life;
@@ -842,17 +883,17 @@ export function CoilSnake() {
         const rise = reduce ? 0 : (1 - (1 - t) * (1 - t)) * 16;
         const scale = reduce ? 1 : t < 0.12 ? 0.6 + (t / 0.12) * 0.55 : 1.15 - Math.min(0.15, (t - 0.12) * 1.2);
         const x = Math.max(24, Math.min(W - 24, f.x));
-        ctx.save();
-        ctx.translate(x, Math.min(H - 4, Math.max(f.size, f.y - rise)));
-        ctx.scale(scale, scale);
-        ctx.globalAlpha = t > 0.7 ? (1 - t) / 0.3 : 1;
-        ctx.font = `400 ${f.size}px ${FONT}`;
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = C.ink;
-        ctx.strokeText(f.text, 0, 0);
-        ctx.fillStyle = f.color;
-        ctx.fillText(f.text, 0, 0);
-        ctx.restore();
+        out.save();
+        out.translate(x, Math.min(H - 4, Math.max(f.size, f.y - rise)));
+        out.scale(scale, scale);
+        out.globalAlpha = t > 0.7 ? (1 - t) / 0.3 : 1;
+        out.font = `400 ${f.size}px ${FONT}`;
+        out.lineWidth = 4;
+        out.strokeStyle = C.ink;
+        out.strokeText(f.text, 0, 0);
+        out.fillStyle = f.color;
+        out.fillText(f.text, 0, 0);
+        out.restore();
       }
 
       // head position for the focus ring on the real slider thumb

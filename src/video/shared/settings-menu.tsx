@@ -160,8 +160,8 @@ function CaptionsMenu() {
 export function SettingsMenu() {
   return (
     <Menu.Root side="top" align="center">
-      <ButtonTooltip label={<TextPrimitive token={settingsText.key}>{settingsText.text}</TextPrimitive>}>
-        <Menu.Trigger render={<Button />}>
+      <ButtonTooltip label="Menu">
+        <Menu.Trigger render={<Button />} aria-label="Menu: quality, audio, speed and captions">
           <GearIconPrimitive className={'media-button-icon'} />
           <TextPrimitive className={'media-settings-button-label'} token={settingsText.key}>
             {settingsText.text}

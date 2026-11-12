@@ -24,6 +24,8 @@ export interface HeadOptions {
   tongue?: boolean;
   /** Eye narrowed, when straining. */
   narrow?: boolean;
+  /** Leave out the eye, brow, nostril, mouth line, fangs and tongue (drawn as hand-placed pixels instead). */
+  bare?: boolean;
   /** Draw the dark edge and light rim. Off for faint after-images. */
   outline?: boolean;
   /** Stripe colour at a distance from the neck (negative = on the head), so the body's stripe carries on. */
@@ -160,6 +162,7 @@ export function drawHead(ctx: CanvasRenderingContext2D, o: HeadOptions): void {
   ctx.fillRect(u(0.9), u(0.1), u(2.4), u(0.6));
   ctx.restore();
 
+  if (!o.bare) {
   // ---- features ----
   // brow ridge and eye
   ctx.strokeStyle = C.ink;
@@ -211,5 +214,76 @@ export function drawHead(ctx: CanvasRenderingContext2D, o: HeadOptions): void {
     ctx.stroke();
   }
 
+  }
+
   ctx.restore();
+}
+
+/**
+ * The face as hand-placed pixels, for the pixel-art snakes. `at(lx, ly)` turns a point on the head (in units of T:
+ * the neck centre is 0,0, +x runs to the nose, +y to the jaw) into a buffer pixel; `px(x, y, colour)` sets one pixel.
+ * `big` draws the larger eye for a large snake.
+ */
+export function drawPixelFace(
+  at: (lx: number, ly: number) => [number, number],
+  px: (x: number, y: number, colour: string) => void,
+  o: { jaw?: number; tongue?: boolean; narrow?: boolean; big?: boolean; colors: HeadColors }
+): void {
+  const C = o.colors;
+  const jaw = Math.max(0, Math.min(1, o.jaw ?? 0));
+  const line = (x0: number, y0: number, x1: number, y1: number, colour: string) => {
+    const [ax, ay] = at(x0, y0);
+    const [bx, by] = at(x1, y1);
+    const n = Math.max(Math.abs(bx - ax), Math.abs(by - ay), 1);
+    for (let i = 0; i <= n; i++) px(Math.round(ax + ((bx - ax) * i) / n), Math.round(ay + ((by - ay) * i) / n), colour);
+  };
+
+  // brow ridge, a hard line over the eye
+  line(1.75, -0.44, 2.6, -0.34, C.ink);
+
+  // the eye: gold with a vertical slit and a glint; narrowed to a slot under a heavy lid when straining
+  const [ex, ey] = at(2.2, -0.2);
+  const gold = C.gold;
+  const hot = '#fff3c4';
+  const shade = '#b87400';
+  const eye = o.big
+    ? o.narrow
+      ? ['iiii', 'gikg', '....']
+      : ['hgig', 'ggig', 'sgis']
+    : o.narrow
+      ? ['iii', 'gig']
+      : ['hig', 'gig'];
+  const cols: Record<string, string> = { i: C.ink, g: gold, h: hot, s: shade, k: C.ink };
+  const ox = Math.floor(eye[0].length / 2);
+  eye.forEach((row, r) => {
+    for (let c = 0; c < row.length; c++) {
+      const key = row[c];
+      if (key !== '.') px(ex - ox + c, ey - 1 + r, cols[key]);
+    }
+  });
+
+  // nostril
+  const [nx, ny] = at(2.95, -0.08);
+  px(nx, ny, C.ink);
+
+  if (jaw > 0.05) {
+    // fangs hang from the upper jaw, longer as the mouth opens wider
+    const long = jaw > 0.5 ? 3 : 2;
+    for (const fx of [2.78, 2.38]) {
+      const [x, y] = at(fx, 0.16);
+      for (let k = 0; k < long; k++) px(x, y + k, '#ece8df');
+    }
+  } else {
+    // the line of the mouth, from the nose back past the eye, with a darker corner
+    line(3.12, 0.12, 1.3, 0.24, C.ink);
+    const [cx, cy] = at(1.3, 0.24);
+    px(cx - 1, cy, C.ink);
+  }
+
+  if (o.tongue) {
+    const red = '#e0613f';
+    line(3.2, 0.1, 3.7, 0.1, red);
+    line(3.7, 0.1, 3.95, -0.06, red);
+    line(3.7, 0.1, 3.95, 0.26, red);
+  }
 }
