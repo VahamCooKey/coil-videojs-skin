@@ -1,87 +1,123 @@
 import { MuxVideo } from '@videojs/react/media/mux-video';
 import { VideoPlayer } from '@videojs/react/video';
-import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type KeyboardEvent, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
 import { CoilIdleSnake } from '@/video/coil/coil-idle';
-import { CoilLoader } from '@/video/coil/coil-loader';
 import { VideoSkin } from '@/video/skin';
 
+import { ditherEdge, PixelSky, type Sky } from './pixel-sky';
 import { ScrollSnake } from './scroll-snake';
 
 // The film on this page: Ganesh's 2026 showreel, hosted on Mux (public playback ID).
 export const PLAYBACK_ID = 'cIfeUUvOtvTx4u1vBjo1lPse00cqzO7TDxrDEX9DFUgE';
 const SRC = `https://stream.mux.com/${PLAYBACK_ID}.m3u8`;
-const POSTER = `https://image.mux.com/${PLAYBACK_ID}/thumbnail.webp?time=7.5&width=1920`;
+const POSTER = `https://image.mux.com/${PLAYBACK_ID}/thumbnail.webp?time=2.2&width=1920`;
 const img = (name: string) => `./hiss/${name}.webp`;
 const clip = (name: string) => ({ src: `./hiss/clips/${name}.mp4`, poster: `./hiss/clips/${name}.webp` });
+
+const SITE = 'https://ganeshdg.com';
+const LINKS = [
+  ['Portfolio', SITE],
+  ['LinkedIn', 'https://www.linkedin.com/in/ganeshdg6'],
+  ['Instagram', 'https://www.instagram.com/ganeshinmotion'],
+] as const;
 
 const reduced = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** Sections double as the stages on the top-bar lane. */
 export const STAGES = [
-  ['moves', 'Moves'],
-  ['screens', 'Screens'],
-  ['controls', 'Controls'],
-  ['sizes', 'Sizes'],
-  ['notes', 'Notes'],
+  ['play', 'How to play'],
+  ['stages', 'Stages'],
+  ['console', 'Console'],
   ['system', 'System'],
   ['access', 'Access'],
-  ['credits', 'Credits'],
 ] as const;
 const STAGE_IDS = STAGES.map(([id]) => id);
 
-/** The move list. Every clip is the real skin, recorded from the workbench. */
+/** The move list. Every clip is the real skin playing the showreel; the cursor and key caps show what was pressed. */
 const MOVES = [
-  { clip: 'start', name: 'START', reads: 'first play', text: 'The title-screen snake idles over the poster. Press START and it lunges onto the lane with its mouth open.' },
-  { clip: 'eat', name: 'EAT', reads: 'current time', text: 'The head bites each pellet as it reaches it. Every bite pops a +1 chip and SCORE ticks over.' },
-  { clip: 'boost', name: 'BOOST', reads: 'seek forward', text: 'Seek ahead and the snake dashes there, swallowing every pellet it passes. The chip shows the seconds gained.' },
-  { clip: 'cough', name: 'COUGH', reads: 'seek back', text: 'Seek back and it coughs the pellets onto the lane again and recoils. The chip shows the seconds lost, in red.' },
-  { clip: 'knot', name: 'KNOT', reads: 'paused', text: 'Pause and the snake ties itself in an overhand knot. Left alone, it strains, shakes and gives up.' },
-  { clip: 'volume', name: 'VOLUME', reads: 'volume, muted', text: 'Louder sound makes a bigger, faster wave down the body. B mutes, the key turns red and the body goes nearly still.' },
-  { clip: 'hover', name: 'SCOUT', reads: 'pointer on the lane', text: 'Point at the lane and it magnifies under the cursor, with the time and chapter name at that spot.' },
-  { clip: 'loading', name: 'LOADING', reads: 'waiting, buffered', text: 'On a slow connection a snake chases its own tail on the screen. Pellets light up as the video loads.' },
-  { clip: 'stages', name: 'STAGES', reads: 'chapters', text: 'Flags stand at each chapter. Crossing one pops STAGE n. The STAGE key in the HUD hides or shows the flags.' },
-  { clip: 'menu', name: 'MENU', reads: 'settings', text: 'The settings menu opens from its key like an in-game menu, with an arrow cursor that follows the arrow keys.' },
+  { clip: 'start', name: 'PRESS START', reads: 'first play', text: 'A coiled snake idles over the poster. Press START and it lunges onto the lane with its mouth open.' },
+  { clip: 'eat', name: 'EAT', reads: 'current time', text: 'Each pellet is a stretch of the video: one second on a short clip, up to five minutes on a long film. The head bites each one it reaches and SCORE ticks over.' },
+  { clip: 'drag', name: 'DRAG', reads: 'seeking', text: 'Grab the head and drag it. Pull back and the snake coughs the pellets onto the lane again; push forward and it swallows them.' },
+  { clip: 'boost', name: 'BOOST', reads: 'seek forward', text: '+10 on the D-pad dashes the snake ahead, swallowing every pellet it passes. -10 sends it back.' },
+  { clip: 'hover', name: 'SCOUT', reads: 'pointer on the lane', text: 'Point at the lane for a preview frame, the time and the chapter name at that spot.' },
+  { clip: 'paused', name: 'PAUSE', reads: 'paused', text: 'A pauses. The frame dims under a pause panel with SCORE and GOAL, and the snake ties itself in a knot.' },
+  { clip: 'knot', name: 'KNOT', reads: 'paused, left alone', text: 'Leave it paused and the knotted snake strains, shakes and gives up. Any press cuts the struggle short.' },
+  { clip: 'volume', name: 'VOLUME', reads: 'volume', text: 'Louder sound makes a bigger, faster wave down the snake’s body; quieter calms it. The meter in the corner appears on the picture.' },
+  { clip: 'captions', name: 'CAPTIONS', reads: 'text track', text: 'CC turns on notes about each piece in the reel, set in the pixel face on a solid plate.' },
+  { clip: 'menu', name: 'MENU', reads: 'settings', text: 'The settings open like an in-game menu. The arrow cursor follows the arrow keys and Escape backs out.' },
+  { clip: 'loading', name: 'LOADING', reads: 'waiting for data', text: 'A snake chases its own tail on the screen. Pellets light up as the video loads, and the last one blinks.' },
+  { clip: 'clear', name: 'STAGE CLEAR', reads: 'ended', text: 'Every pellet is gone. The panel counts the time and stages cleared, and A becomes PLAY AGAIN.' },
+  { clip: 'gameover', name: 'GAME OVER', reads: 'error', text: 'The video failed. The console dims and CONTINUE? retries. Screen readers hear the full error message.' },
 ];
 
-const SCREENS = [
-  { clip: 'start', name: 'PRESS START', when: 'Before the first play', text: 'A coiled snake idles over the poster frame. START, A, Space or a tap on the picture begins.' },
-  { clip: 'paused', name: 'PAUSED', when: 'Whenever playback stops', text: 'The frame dims under a pause panel with SCORE and GOAL, like a game pause menu.' },
-  { clip: 'clear', name: 'STAGE CLEAR', when: 'When the video ends', text: 'Every pellet is gone. The panel shows the time and stages cleared, and A becomes PLAY AGAIN.' },
-  { clip: 'gameover', name: 'GAME OVER', when: 'When the video fails', text: 'The console dims and CONTINUE? retries. Screen readers get the full error message.' },
+/** The other layouts, shown one at a time under the player. */
+const ALSO = [
+  { clip: 'portrait', frame: 'phone', name: 'Phone, upright', text: 'The pad stacks under a 60 px lane, and the snake draws at 70% so more pellets fit.' },
+  { clip: 'landscape', frame: 'hand', name: 'Phone, sideways', text: 'A handheld: picture in the middle, A and B under the left thumb, the D-pad under the right.' },
+  { clip: 'fullscreen', frame: 'tv', name: 'Fullscreen, desktop', text: 'A thin HUD on top, the lane and keys in one row below. Both hide when the mouse rests.' },
 ];
 
-/** Parts of the console, numbered on the diagram. x and y are percentages of the picture. */
-const PARTS = [
-  { x: 4, y: 9, name: 'SCORE', job: 'Current time. A +1 chip pops each time the snake eats.' },
-  { x: 47, y: 9, name: 'STAGE', job: 'The current chapter. Press it to show or hide the chapter flags.' },
-  { x: 96, y: 9, name: 'GOAL', job: 'Length of the video.' },
-  { x: 50, y: 42, name: 'SCREEN', job: 'The video. Click or tap it to play and pause.' },
-  { x: 29, y: 74, name: 'LANE', job: 'The seek bar. The snake head is the playhead; click, drag or use the arrow keys.' },
-  { x: 3, y: 79, name: 'A / B', job: 'A plays and pauses. B mutes.' },
-  { x: 40, y: 80, name: 'OPTIONS', job: 'Captions, settings menu, picture in picture, fullscreen.' },
-  { x: 97, y: 79, name: 'D-PAD', job: 'Left and right jump 10 seconds. Up and down set the volume.' },
+/** The showreel's chapters, as in showreel-chapters.vtt. */
+const CHAPTERS = [
+  { t: 0, name: 'Motion Design' },
+  { t: 6.4, name: 'Product Film' },
+  { t: 9.2, name: 'Kiosk Interface' },
+  { t: 18.2, name: 'Short-Form Videos' },
+  { t: 27, name: 'Automated Videos' },
+  { t: 31.7, name: '3D Character' },
+  { t: 35.4, name: 'AI Product Launch' },
+  { t: 43, name: 'Ad Compositing' },
+];
+
+/** What the game shows for each player state. */
+const RULES = [
+  ['Time watched', 'The snake’s body', 'Grows one pellet at a time'],
+  ['Playhead', 'The head', 'Always on the true time, from 0:00'],
+  ['Buffered', 'Lit pellets', 'Dark pellets have not loaded yet'],
+  ['Seek forward', 'BOOST', 'Dashes, swallowing what it passes'],
+  ['Seek back', 'Cough', 'Spits pellets back and recoils'],
+  ['Paused', 'PAUSED + knot', 'Ties itself up until you press A'],
+  ['Waiting', 'LOADING', 'Chases its tail on the screen'],
+  ['Ended', 'STAGE CLEAR', 'Lane empty, PLAY AGAIN'],
+  ['Error', 'GAME OVER', 'CONTINUE? retries the source'],
+  ['Chapters', 'Stages', 'Flags on the lane, name in the HUD'],
+  ['Volume', 'Body wave', 'Louder sound, bigger wave'],
+] as const;
+
+/**
+ * Parts of the console. x and y are the spot on the picture (percent); the number sits outside the picture on
+ * `side`, joined to the spot by a line.
+ */
+const PARTS: { x: number; y: number; side: 'l' | 'r' | 't' | 'b'; name: string; job: string }[] = [
+  { x: 2, y: 4.2, side: 'l', name: 'SCORE', job: 'Current time on digit tiles. The bar under it fills as the video plays.' },
+  { x: 50, y: 2, side: 't', name: 'STAGE', job: 'The current chapter. Press it to show or hide the chapter flags.' },
+  { x: 98, y: 4.2, side: 'r', name: 'GOAL', job: 'Length of the video.' },
+  { x: 2, y: 38, side: 'l', name: 'SCREEN', job: 'The video. Click or tap it to play and pause.' },
+  { x: 2, y: 75.5, side: 'l', name: 'LANE', job: 'The seek bar. The head is the playhead: click, drag, or use the arrow keys.' },
+  { x: 2.5, y: 88.5, side: 'l', name: 'A / B', job: 'A plays and pauses. B mutes.' },
+  { x: 50.8, y: 94, side: 'b', name: 'OPTIONS', job: 'Captions, settings, picture in picture, fullscreen.' },
+  { x: 97.5, y: 90, side: 'r', name: 'D-PAD', job: 'Left and right jump 10 seconds. Up and down set the volume.' },
 ];
 
 const PALETTE = [
-  { hex: '#14171b', name: 'Case', role: 'Console body and this page.' },
-  { hex: '#1d2127', name: 'Panel', role: 'Keys and HUD wells.' },
-  { hex: '#2c323a', name: 'Edge', role: 'Bevels and borders. Decorative, 1.4:1.' },
-  { hex: '#ece8df', name: 'Bone', role: 'Text and icons. 14.7:1 on Case.' },
-  { hex: '#a7a399', name: 'Dim', role: 'Key legends. 7.1:1 on Case.' },
-  { hex: '#ffb21e', name: 'Gold', role: 'Live or pressable: A, pellets, SCORE, focus. 10.0:1.' },
-  { hex: '#ff4d3d', name: 'Red', role: 'Muted and GAME OVER only. 5.5:1 on Case.' },
-  { hex: '#0a0b0d', name: 'Ink', role: 'Text on gold. 10.9:1.' },
+  { hex: '#14171b', name: 'Case', role: 'Console body' },
+  { hex: '#1d2127', name: 'Panel', role: 'Keys, HUD wells' },
+  { hex: '#2c323a', name: 'Edge', role: 'Bevels (decor only)' },
+  { hex: '#ece8df', name: 'Bone', role: 'Text, icons · 14.7:1' },
+  { hex: '#a7a399', name: 'Dim', role: 'Legends · 7.1:1' },
+  { hex: '#ffb21e', name: 'Gold', role: 'Live, pressable, focus · 10.0:1' },
+  { hex: '#ff4d3d', name: 'Red', role: 'Muted, GAME OVER · 5.5:1' },
+  { hex: '#0a0b0d', name: 'Ink', role: 'Text on gold · 10.9:1' },
 ];
 
-/** Keyboard map. `match` lists the KeyboardEvent.key values that light the row. */
+/** Keyboard map, from the skin's own hotkeys. `match` lists the KeyboardEvent.key values that light the row. */
 const KEYS: { keys: string; what: string; match: string[] }[] = [
-  { keys: 'Space · K · A', what: 'Play or pause', match: [' ', 'k', 'a'] },
+  { keys: 'Space · A', what: 'Play or pause (K too)', match: [' ', 'a', 'k'] },
   { keys: 'M · B', what: 'Mute or unmute', match: ['m', 'b'] },
-  { keys: '← → · J L', what: 'Seek back or forward', match: ['ArrowLeft', 'ArrowRight', 'j', 'l'] },
+  { keys: '← →', what: 'Seek back or forward (J L too)', match: ['ArrowLeft', 'ArrowRight', 'j', 'l'] },
   { keys: '↑ ↓', what: 'Volume', match: ['ArrowUp', 'ArrowDown'] },
   { keys: '0 to 9', what: 'Jump to 0% to 90%', match: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] },
-  { keys: 'Home · End', what: 'Start or end', match: ['Home', 'End'] },
   { keys: 'F', what: 'Fullscreen', match: ['f'] },
   { keys: 'C', what: 'Captions', match: ['c'] },
   { keys: 'I', what: 'Picture in picture', match: ['i'] },
@@ -89,6 +125,10 @@ const KEYS: { keys: string; what: string; match: string[] }[] = [
 ];
 
 const keyName = (k: string) => (k === ' ' ? 'SPACE' : k.startsWith('Arrow') ? k.slice(5).toUpperCase() : k.toUpperCase());
+const clock = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+
+/** The hero's <video>, for the stage-select map. */
+const heroVideo = () => document.querySelector<HTMLVideoElement>('#player video');
 
 /* ---- building blocks ------------------------------------------------------------------------------------------ */
 
@@ -102,7 +142,7 @@ function Clip({ name, label, className }: { name: string; label: string; classNa
   useEffect(() => {
     const v = ref.current;
     if (!v || calm) return;
-    const io = new IntersectionObserver(([e]) => (e.isIntersecting ? v.play().catch(() => {}) : v.pause()), { threshold: 0.35 });
+    const io = new IntersectionObserver(([e]) => (e.isIntersecting ? v.play().catch(() => {}) : v.pause()), { threshold: 0.3 });
     io.observe(v);
     return () => io.disconnect();
   }, [calm]);
@@ -137,11 +177,28 @@ function Clip({ name, label, className }: { name: string; label: string; classNa
   );
 }
 
-/** Section header styled like the HUD counter: a gold tab, then the stage number on digit tiles. */
-function Section({ id, n, title, lead, children, band }: { id: string; n: number; title: string; lead?: ReactNode; children: ReactNode; band?: boolean }) {
+/** Section: a dithered edge in, a STAGE counter, a big extruded heading. */
+function Section({
+  id,
+  n,
+  title,
+  lead,
+  children,
+  tone = 'case',
+  prev = 'case',
+}: {
+  id: string;
+  n: number;
+  title: string;
+  lead?: ReactNode;
+  children: ReactNode;
+  tone?: 'case' | 'panel' | 'plum';
+  prev?: keyof typeof TONES | `#${string}`;
+}) {
   const digits = String(n).padStart(2, '0').split('');
+  const edge = ditherEdge(prev in TONES ? TONES[prev as keyof typeof TONES] : prev, TONES[tone]);
   return (
-    <section id={id} className={`stage-sec${band ? ' band' : ''}`} aria-labelledby={`${id}-h`}>
+    <section id={id} className={`stage-sec tone-${tone}`} aria-labelledby={`${id}-h`} style={{ '--edge-in': edge } as CSSProperties}>
       <div className="wrap">
         <header className="sec-head">
           <div className="counter" aria-hidden="true">
@@ -152,7 +209,9 @@ function Section({ id, n, title, lead, children, band }: { id: string; n: number
               </span>
             ))}
           </div>
-          <h2 id={`${id}-h`}>{title}</h2>
+          <h2 id={`${id}-h`} className="extrude">
+            {title}
+          </h2>
           {lead && <p className="lead">{lead}</p>}
         </header>
         {children}
@@ -161,36 +220,226 @@ function Section({ id, n, title, lead, children, band }: { id: string; n: number
   );
 }
 
-/* ---- the move list: demo mode until you pick a move ----------------------------------------------------------- */
+const TONES = { case: '#14171b', panel: '#1b1f25', plum: '#1d1530' } as const;
+/** The colour at the bottom of the hero for each background, where the first section's dithered edge starts. */
+const GROUND = { night: '#14171b', dawn: '#6e5bb8', paper: '#e7e0d1' } as const;
+
+/* ---- hero background switch ----------------------------------------------------------------------------------- */
+
+const SKIES: { id: Sky; label: string }[] = [
+  { id: 'night', label: 'Night' },
+  { id: 'dawn', label: 'Dawn' },
+  { id: 'paper', label: 'Paper' },
+];
+
+function SkySwitch({ sky, set }: { sky: Sky; set: (s: Sky) => void }) {
+  return (
+    <div className="sky-switch" role="group" aria-label="Page background behind the player">
+      <span className="sky-switch-label" aria-hidden="true">
+        BG
+      </span>
+      {SKIES.map((s) => (
+        <button key={s.id} type="button" aria-pressed={sky === s.id} onClick={() => set(s.id)}>
+          <span className={`sky-dot sky-dot-${s.id}`} aria-hidden="true" />
+          {s.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ---- lightbox: a clip, large ---------------------------------------------------------------------------------- */
+
+function Lightbox({ name, label, onClose }: { name: string; label: string; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const { src, poster } = clip(name);
+  useEffect(() => {
+    const d = ref.current;
+    if (d && !d.open) d.showModal();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      className="lightbox"
+      aria-label={label}
+      onClose={onClose}
+      onClick={(e) => e.target === e.currentTarget && e.currentTarget.close()}
+    >
+      <div className="lightbox-box">
+        <button type="button" className="lightbox-close" onClick={() => ref.current?.close()} autoFocus>
+          ✕ CLOSE
+        </button>
+        <video src={src} poster={poster} muted loop playsInline autoPlay controls={reduced()} aria-label={label} />
+      </div>
+    </dialog>
+  );
+}
+
+/** True while the element is on screen. */
+function useSeen<T extends HTMLElement>(threshold = 0.3) {
+  const ref = useRef<T>(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setSeen(e.isIntersecting), { threshold });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [threshold]);
+  return [ref, seen] as const;
+}
+
+/* ---- also on: one layout at a time; the timer is one loop of its clip (two if the clip is short) ---------------- */
+
+const SHORT_CLIP = 6; // seconds
+
+function AlsoOn() {
+  const [i, setI] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [calm] = useState(reduced);
+  const [box, seen] = useSeen<HTMLDivElement>(0.3);
+  const video = useRef<HTMLVideoElement>(null);
+  const bar = useRef<HTMLSpanElement>(null);
+  const plays = useRef(0);
+  const item = ALSO[i];
+  const { src, poster } = clip(item.clip);
+  const running = seen && !open && !calm;
+
+  // leaving the row resets it
+  useEffect(() => {
+    if (!seen) setI(0);
+  }, [seen]);
+
+  useEffect(() => {
+    plays.current = 0;
+    if (bar.current) bar.current.style.transform = 'scaleX(0)';
+    const v = video.current;
+    if (v && seen) v.currentTime = 0;
+  }, [i, seen]);
+
+  useEffect(() => {
+    const v = video.current;
+    if (!v) return;
+    if (running) v.play().catch(() => {});
+    else v.pause();
+  }, [running, i]);
+
+  const go = (n: number) => setI((n + ALSO.length) % ALSO.length);
+  const loops = (v: HTMLVideoElement) => (v.duration < SHORT_CLIP ? 2 : 1);
+
+  const onTime = () => {
+    const v = video.current;
+    if (!v || !bar.current || !v.duration) return;
+    bar.current.style.transform = `scaleX(${Math.min(1, (plays.current + v.currentTime / v.duration) / loops(v))})`;
+  };
+
+  const onEnded = () => {
+    const v = video.current;
+    if (!v) return;
+    plays.current += 1;
+    if (plays.current < loops(v)) {
+      v.currentTime = 0;
+      v.play().catch(() => {});
+    } else go(i + 1);
+  };
+
+  return (
+    <div className="also" ref={box}>
+      <div className="also-head">
+        <h2 id="also-h" className="also-h">
+          <span className="also-tab">ALSO ON</span> One skin, every screen
+        </h2>
+        <div className="also-tabs" role="group" aria-label="Layouts">
+          {ALSO.map((a, n) => (
+            <button key={a.clip} type="button" className="also-btn" aria-pressed={n === i} onClick={() => setI(n)}>
+              {a.name}
+              {n === i && <span ref={bar} className="timer" aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+      </div>
+      <figure className="also-stage">
+        <button type="button" className="arrow" onClick={() => go(i - 1)} aria-label="Previous layout">
+          ◀
+        </button>
+        <button type="button" className={`dev dev-${item.frame}`} onClick={() => setOpen(true)} aria-label={`${item.name}. Open this clip larger.`}>
+          <video
+            key={item.clip}
+            ref={video}
+            src={src}
+            poster={poster}
+            muted
+            playsInline
+            preload="metadata"
+            onTimeUpdate={onTime}
+            onEnded={onEnded}
+          />
+          <span className="zoom" aria-hidden="true">
+            EXPAND
+          </span>
+        </button>
+        <button type="button" className="arrow" onClick={() => go(i + 1)} aria-label="Next layout">
+          ▶
+        </button>
+        <figcaption aria-live="polite">
+          <b>{item.name}</b>
+          {item.text}
+        </figcaption>
+      </figure>
+      {open && <Lightbox name={item.clip} label={`${item.name}. ${item.text}`} onClose={() => setOpen(false)} />}
+    </div>
+  );
+}
+
+/* ---- the move list: each clip plays twice, then the next move; leaving the section resets it ------------------- */
+
+const PLAYS = 2;
 
 function MoveList() {
   const [i, setI] = useState(0);
-  const [attract, setAttract] = useState(() => !reduced());
-  const [seen, setSeen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
+  const [calm] = useState(reduced);
+  const [box, seen] = useSeen<HTMLDivElement>(0.25);
   const screen = useRef<HTMLVideoElement>(null);
+  const bar = useRef<HTMLSpanElement>(null);
+  const plays = useRef(0);
   const items = useRef<(HTMLButtonElement | null)[]>([]);
   const m = MOVES[i];
   const { src, poster } = clip(m.clip);
 
-  // only run while the section is on screen
+  // leaving the section resets the list to the first move
   useEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => setSeen(e.isIntersecting), { threshold: 0.25 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+    if (!seen) setI(0);
+  }, [seen]);
 
   useEffect(() => {
+    plays.current = 0;
+    if (bar.current) bar.current.style.width = '0%';
     const v = screen.current;
     if (!v) return;
-    if (seen && (attract || !reduced())) v.play().catch(() => {});
-    else v.pause();
-  }, [seen, i, attract]);
+    if (seen && !calm) {
+      v.currentTime = 0;
+      v.play().catch(() => {});
+    } else v.pause();
+  }, [seen, i, calm]);
+
+  const onTime = () => {
+    const v = screen.current;
+    if (!v || !bar.current || !v.duration) return;
+    bar.current.style.width = `${Math.min(100, ((plays.current + v.currentTime / v.duration) / PLAYS) * 100)}%`;
+  };
+
+  const onEnded = () => {
+    const v = screen.current;
+    if (!v) return;
+    plays.current += 1;
+    if (plays.current < PLAYS || calm) {
+      if (calm) plays.current = 0;
+      v.currentTime = 0;
+      if (!calm) v.play().catch(() => {});
+    } else setI((n) => (n + 1) % MOVES.length);
+  };
 
   const pick = (n: number, focus = false) => {
-    setAttract(false);
     setI(n);
     if (focus) items.current[n]?.focus();
   };
@@ -207,20 +456,6 @@ function MoveList() {
   return (
     <div className="movelist" ref={box}>
       <div className="ml-menu">
-        <div className="ml-mode" aria-live="polite">
-          {attract ? (
-            <>
-              <span className="blink">DEMO</span> PICK A MOVE TO TAKE OVER
-            </>
-          ) : (
-            <>
-              PRACTICE ·{' '}
-              <button type="button" className="ml-demo" onClick={() => setAttract(true)}>
-                RESUME DEMO
-              </button>
-            </>
-          )}
-        </div>
         <ul aria-label="Moves" onKeyDown={onKey}>
           {MOVES.map((mv, n) => (
             <li key={mv.name}>
@@ -246,10 +481,10 @@ function MoveList() {
             </li>
           ))}
         </ul>
-        <p className="ml-hint">↑ ↓ to choose</p>
+        <p className="ml-hint">Click a move, or ↑ ↓</p>
       </div>
 
-      <div className="ml-screen" id="ml-screen">
+      <div className="ml-screen frame" id="ml-screen">
         <div className="ml-hud">
           <span className="ml-hud-tab">
             MOVE {String(i + 1).padStart(2, '0')}/{MOVES.length}
@@ -259,6 +494,9 @@ function MoveList() {
             READS <b>{m.reads}</b>
           </span>
         </div>
+        <div className="ml-bar" aria-hidden="true">
+          <span ref={bar} />
+        </div>
         <div className="ml-glass">
           <video
             key={m.clip}
@@ -267,10 +505,11 @@ function MoveList() {
             poster={poster}
             muted
             playsInline
-            loop={!attract}
+            controls={calm}
             preload="auto"
             aria-label={`${m.name}: ${m.text}`}
-            onEnded={() => attract && setI((n) => (n + 1) % MOVES.length)}
+            onTimeUpdate={onTime}
+            onEnded={onEnded}
           />
         </div>
         <p className="ml-text">{m.text}</p>
@@ -279,24 +518,112 @@ function MoveList() {
   );
 }
 
-/* ---- controls diagram: hover a part or a pin to light both ---------------------------------------------------- */
+/* ---- stage select: the showreel's chapters as a map; pick one and the player above warps there ---------------- */
+
+// node positions on a 100 x 40 grid, a winding path left to right
+const NODES = [
+  [6, 30],
+  [18, 12],
+  [31, 26],
+  [44, 9],
+  [56, 28],
+  [68, 12],
+  [81, 27],
+  [93, 10],
+];
+
+function StageSelect() {
+  const [now, setNow] = useState(-1);
+
+  // follow the hero player: the node it is in lights up
+  useEffect(() => {
+    let v: HTMLVideoElement | null = null;
+    let tries = 0;
+    const update = () => {
+      if (!v) return;
+      let k = -1;
+      CHAPTERS.forEach((c, n) => v!.currentTime >= c.t && (k = n));
+      setNow(v.currentTime > 0 || !v.paused ? k : -1);
+    };
+    const hook = window.setInterval(() => {
+      v = heroVideo();
+      if (v || ++tries > 40) {
+        window.clearInterval(hook);
+        v?.addEventListener('timeupdate', update);
+        v?.addEventListener('seeked', update);
+      }
+    }, 250);
+    return () => {
+      window.clearInterval(hook);
+      v?.removeEventListener('timeupdate', update);
+      v?.removeEventListener('seeked', update);
+    };
+  }, []);
+
+  const warp = (t: number) => {
+    const v = heroVideo();
+    if (!v) return;
+    v.currentTime = t + 0.05;
+    v.play().catch(() => {});
+    document.getElementById('player')?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'center' });
+  };
+
+  // a stepped path: horizontal, then vertical, between nodes
+  let d = `M${NODES[0][0]} ${NODES[0][1]}`;
+  for (let k = 1; k < NODES.length; k++) {
+    const [x0] = NODES[k - 1];
+    const [x1, y1] = NODES[k];
+    const mid = Math.round((x0 + x1) / 2);
+    d += ` H${mid} V${y1} H${x1}`;
+  }
+
+  return (
+    <div className="map">
+      <svg className="map-path" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
+        <path d={d} />
+      </svg>
+      <ol className="map-nodes">
+        {CHAPTERS.map((c, n) => (
+          <li key={c.name} style={{ left: `${NODES[n][0]}%`, top: `${(NODES[n][1] / 40) * 100}%` }}>
+            <button
+              type="button"
+              className={`node${n === now ? ' here' : ''}${n < now ? ' done' : ''}`}
+              onClick={() => warp(c.t)}
+              aria-label={`Stage ${n + 1}, ${c.name}, at ${clock(c.t)}. Play from here in the player above.`}
+            >
+              <span className="node-n" aria-hidden="true">
+                {n + 1}
+              </span>
+              <span className="node-name">{c.name}</span>
+              <span className="node-t">{clock(c.t)}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/* ---- controls diagram: numbers outside the picture, a line to each part ---------------------------------------- */
 
 function Diagram() {
   const [on, setOn] = useState(-1);
   return (
     <figure className="diagram">
       <div className="diagram-pic">
-        <img src={img('state-play')} alt="The HISS player while playing, with its eight parts numbered." width={896} height={762} />
+        <img src={img('state-play')} alt="The HISS player while playing, with its eight parts numbered." width={1440} height={1302} loading="lazy" />
         {PARTS.map((p, n) => (
           <span
             key={p.name}
-            className={`pin${on === n ? ' on' : ''}`}
-            style={{ left: `${p.x}%`, top: `${p.y}%` }}
+            className={`call call-${p.side}${on === n ? ' on' : ''}`}
+            style={{ '--x': `${p.x}%`, '--y': `${p.y}%` } as CSSProperties}
             onMouseEnter={() => setOn(n)}
             onMouseLeave={() => setOn(-1)}
             aria-hidden="true"
           >
-            {n + 1}
+            <i className="call-line" />
+            <i className="call-dot" />
+            <b className="call-n">{n + 1}</b>
           </span>
         ))}
       </div>
@@ -347,7 +674,7 @@ function Keys() {
             <span>{KEYS[lit.row].what.toUpperCase()}</span>
           </>
         ) : (
-          <span className="lcd-idle">PRESS A KEY</span>
+          <span className="lcd-idle blink">PRESS A KEY</span>
         )}
       </div>
       <table className="keys">
@@ -362,26 +689,80 @@ function Keys() {
           ))}
         </tbody>
       </table>
-      <p className="small">Focus the player and these keys drive it. They never fire while you type in a field.</p>
     </div>
+  );
+}
+
+/* ---- dock: fixed keys at the bottom of the page ---------------------------------------------------------------- */
+
+function Dock() {
+  const [far, setFar] = useState(false);
+  useEffect(() => {
+    const on = () => setFar(window.scrollY > 700);
+    on();
+    window.addEventListener('scroll', on, { passive: true });
+    return () => window.removeEventListener('scroll', on);
+  }, []);
+  return (
+    <nav className="dock" aria-label="Quick links">
+      {far && (
+        <a className="dock-key" href="#top">
+          ▲ Top
+        </a>
+      )}
+      <a className="dock-key" href="#contact">
+        Contact
+      </a>
+      <a className="dock-key dock-gold" href={SITE}>
+        ganeshdg.com ↗
+      </a>
+    </nav>
   );
 }
 
 /* ---- page ----------------------------------------------------------------------------------------------------- */
 
+/**
+ * On phones the top bar slides away while you scroll down the page and comes back as soon as you scroll up (or reach
+ * the top), so it doesn't eat the small screen. On wider screens it always stays.
+ */
+function useHideOnScroll() {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    const phone = window.matchMedia('(max-width: 960px)');
+    let last = window.scrollY;
+    const on = () => {
+      const y = window.scrollY;
+      if (!phone.matches || y < 80) setHidden(false);
+      else if (Math.abs(y - last) > 6) setHidden(y > last);
+      last = y;
+    };
+    window.addEventListener('scroll', on, { passive: true });
+    phone.addEventListener('change', on);
+    return () => {
+      window.removeEventListener('scroll', on);
+      phone.removeEventListener('change', on);
+    };
+  }, []);
+  return hidden;
+}
+
 export function Page() {
+  const [sky, setSky] = useState<Sky>('night');
+  const barHidden = useHideOnScroll();
+
   const startPlayer = () => {
-    const start = document.querySelector<HTMLElement>('#play .coil-start');
-    document.getElementById('play')?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'center' });
+    const start = document.querySelector<HTMLElement>('#player .coil-start');
+    document.getElementById('player')?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'center' });
     window.setTimeout(() => start?.focus({ preventScroll: true }), 450);
   };
 
   return (
     <>
-      <a className="skip" href="#play">
+      <a className="skip" href="#player">
         Skip to the player
       </a>
-      <header className="topbar">
+      <header className={`topbar${barHidden ? ' topbar-away' : ''}`} onFocus={() => document.querySelector('.topbar-away')?.classList.remove('topbar-away')}>
         <div className="topbar-row">
           <a className="mark" href="#top" aria-label="HISS, back to the top">
             <span className="mark-tab">HISS</span>
@@ -406,41 +787,47 @@ export function Page() {
       </header>
 
       <main id="top">
-        <section className="title" aria-labelledby="title-h">
-          <div className="wrap title-grid">
-            <div className="title-copy">
-              <div className="idle" aria-hidden="true">
+        {/* ---- title screen ---- */}
+        <section className={`hero sky-${sky}`} aria-labelledby="title-h">
+          <PixelSky sky={sky} />
+          <div className="wrap hero-inner">
+            <div className="hero-title">
+              <div className="hero-idle" aria-hidden="true">
                 <CoilIdleSnake />
               </div>
-              <h1 id="title-h">HISS</h1>
-              <p className="kicker">A game-console skin for Video.js 10</p>
-              <p className="pitch">
-                The playhead is a snake. It eats the pellets laid along the timeline, so its length is how much you have
-                watched. Every button is a normal player button.
-              </p>
-              <button type="button" className="press-start" onClick={startPlayer}>
-                <span className="blink">▶</span> PRESS START
-              </button>
-              <dl className="stats">
-                <div>
-                  <dt>Moves</dt>
-                  <dd>{MOVES.length}</dd>
-                </div>
-                <div>
-                  <dt>Screens</dt>
-                  <dd>{SCREENS.length}</dd>
-                </div>
-                <div>
-                  <dt>Colours</dt>
-                  <dd>{PALETTE.length}</dd>
-                </div>
-                <div>
-                  <dt>Min key</dt>
-                  <dd>44px</dd>
-                </div>
-              </dl>
+              <div>
+                <p className="kicker">
+                  <span className="blink" aria-hidden="true">
+                    ▶
+                  </span>{' '}
+                  A game-console skin for Video.js 10
+                </p>
+                <h1 id="title-h" className="logo">
+                  HISS
+                </h1>
+              </div>
             </div>
-            <div className="title-player" id="play">
+            <p className="pitch">
+              The seek bar is a lane and the playhead is a snake. Every pellet it eats is time you have watched, and every
+              screen it shows is a real player state.
+            </p>
+
+            <div className="hero-bar">
+              <button type="button" className="press-start" onClick={startPlayer}>
+                <span className="blink" aria-hidden="true">
+                  ▶
+                </span>{' '}
+                PRESS START
+              </button>
+              <a className="get-posters" href="./hiss/hiss-posters.zip" download="HISS posters.zip">
+                <span aria-hidden="true">▼</span> DOWNLOAD POSTERS
+                <small>ZIP · 2 MB</small>
+              </a>
+              <p className="try">Try it: drag the snake, put the mouse away, resize the window.</p>
+              <SkySwitch sky={sky} set={setSky} />
+            </div>
+
+            <div className="player-wrap" id="player">
               <VideoPlayer poster={POSTER} title="Showreel 2026">
                 <VideoSkin>
                   <MuxVideo src={SRC} playsInline crossOrigin="" preload="metadata">
@@ -449,129 +836,96 @@ export function Page() {
                   </MuxVideo>
                 </VideoSkin>
               </VideoPlayer>
-              <p className="playing">
-                Now playing: Showreel 2026 by <a href="https://ganeshdg.com">Ganesh Datta G</a>, streamed from Mux. Play it,
-                seek it, pause it. The eight chapters are stages on the lane, and CC turns on notes about each piece.
-              </p>
             </div>
+            <p className="playing">
+              Now playing: Showreel 2026 by <a href={SITE}>Ganesh Datta G</a>, streamed from Mux. Eight chapters are eight
+              stages; CC turns on notes about each piece.
+            </p>
+
+            <AlsoOn />
           </div>
         </section>
 
-        <Section id="moves" n={1} band title="Move list" lead="Everything the snake does comes from the player's real state. Pick a move to see it.">
+        <Section
+          id="play"
+          n={1}
+          tone="panel"
+          prev={GROUND[sky]}
+          title="How to play"
+          lead="Every move is a normal player action, and every screen is a real player state. Each clip plays twice, then the next move starts."
+        >
           <MoveList />
         </Section>
 
-        <Section id="screens" n={2} title="Screens" lead="Each player state gets its own screen, named the way a game would name it.">
-          <div className="screens">
-            {SCREENS.map((s) => (
-              <figure key={s.name}>
-                <Clip name={s.clip} label={`${s.name} screen. ${s.text}`} />
-                <figcaption>
-                  <b>{s.name}</b>
-                  <span className="when">{s.when}</span>
-                  <span>{s.text}</span>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
+        <Section
+          id="stages"
+          n={2}
+          tone="plum"
+          prev="panel"
+          title="Stages"
+          lead="Chapters come from a standard WebVTT file, so any video with chapters gets stages for free. The showreel has eight."
+        >
+          <figure className="stages-clip">
+            <Clip name="stages" label="Crossing a flag changes the STAGE name; STAGE hides and shows the flags; a click on a flag jumps there." className="frame" />
+            <figcaption>
+              Crossing a flag changes the STAGE name in the HUD. The STAGE key hides or shows the flags. Click a flag and the
+              snake jumps there.
+            </figcaption>
+          </figure>
+          <h3 className="mini map-h">Stage select</h3>
+          <p className="map-lead">Pick a stage and the player at the top jumps there and plays.</p>
+          <StageSelect />
         </Section>
 
-        <Section id="controls" n={3} title="Controls" lead="Each button does what a player button does and sits where you would look for it.">
+        <Section id="console" n={3} tone="case" prev="plum" title="The console" lead="Every key does what a player key does and sits where you would look for it.">
           <Diagram />
-          <div className="parts">
-            <figure>
-              <img src={img('part-ab')} alt="The A key, a gold octagon showing pause, and the B key, a red octagon showing muted." width={210} height={115} />
-              <figcaption>
-                <b>A and B.</b> Octagon face buttons. A is the only gold key because you press it most. B turns red while the sound is off.
-              </figcaption>
-            </figure>
-            <figure>
-              <img src={img('part-options')} alt="Four square keys labelled CC, MENU, PIP and FULL." width={290} height={85} />
-              <figcaption>
-                <b>Option keys.</b> Pixel icons with the name printed underneath, so nobody has to guess a glyph.
-              </figcaption>
-            </figure>
-            <figure>
-              <img src={img('part-dpad')} alt="A D-pad with VOL+ on top, VOL- below, -10 on the left and +10 on the right." width={155} height={145} />
-              <figcaption>
-                <b>D-pad.</b> Laid out like the arrow keys: left and right move through time, up and down change the volume.
-              </figcaption>
-            </figure>
-            <figure>
-              <img src={img('part-score')} alt="The SCORE counter reading 0:44 in separate digit tiles." width={175} height={60} />
-              <figcaption>
-                <b>Counters.</b> One tile per digit. The bar under SCORE fills as the video plays.
-              </figcaption>
-            </figure>
-          </div>
         </Section>
 
-        <Section id="sizes" n={4} band title="Every size" lead="One skin from a phone held upright to fullscreen on a monitor.">
-          <div className="sizes">
-            <figure className="land">
-              <Clip name="landscape" label="HISS on a phone held sideways, playing and seeking." />
-              <figcaption>
-                <b>Phone, sideways.</b> It turns into a handheld: the picture at full height, A and B under the left thumb, the D-pad under the right, the lane along the bottom. Fullscreen uses the same layout.
-              </figcaption>
-            </figure>
-            <figure className="port">
-              <img src={img('phone-portrait')} alt="HISS on a phone held upright: HUD, picture, lane, then the pad in two rows." width={390} height={594} loading="lazy" />
-              <figcaption>
-                <b>Phone, upright.</b> The lane drops to 60 px and the snake draws at 70% so more pellets fit.
-              </figcaption>
-            </figure>
+        <Section id="system" n={4} tone="panel" prev="case" title="System" lead="Why it looks the way it does, and what it is built from.">
+          <div className="why">
+            <article className="why-lead">
+              <h3 className="mini">Why a game console</h3>
+              <p>
+                Watching a video already works like a game: there is a score (how far you are), a goal (how long it is) and
+                stages (chapters). HISS draws that game on top of a normal Video.js player. The stock slider still takes every
+                click, drag and key press, and screen readers hear the stock player. The snake only draws what the player
+                reports, so nothing on screen is decoration.
+              </p>
+              <p>
+                It is the player on my own portfolio, so it also had to sit on someone else’s page. The console is one solid,
+                self-contained object. Switch the background at the top of this page to Dawn or Paper to see it on a bright
+                site.
+              </p>
+              <p>
+                Nothing glows or blurs. A lit key is a brighter key, and depth is a 2 px bevel. Gold means live or pressable,
+                red means muted or broken. The pixel face, Jersey 15, is set only at 15, 30, 45 and 60 px so it lands on whole
+                screen pixels.
+              </p>
+            </article>
+            <div className="rules">
+              <h3 className="mini">The rules</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Player</th>
+                    <th scope="col">Game</th>
+                    <th scope="col">What you see</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {RULES.map(([a, b, c]) => (
+                    <tr key={a}>
+                      <th scope="row">{a}</th>
+                      <td>{b}</td>
+                      <td>{c}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </Section>
 
-        <Section id="notes" n={5} title="Notes" lead="Why it looks and behaves the way it does.">
-          <div className="notes">
-            <article>
-              <h3>A snake grows as it eats</h3>
-              <p>
-                A progress bar grows as you watch, and so does a snake. The body behind the head is the time you have
-                watched and the pellets ahead are the time left, so the lane still works as an ordinary seek bar.
-              </p>
-            </article>
-            <article>
-              <h3>The head is always on the true time</h3>
-              <p>
-                The lane starts with a short run-up, so at 0:00 the head already sits on the start line. The canvas draws
-                over the stock Video.js time slider and never takes input. Clicks, drags, arrow keys and what a screen reader
-                hears all come from Video.js.
-              </p>
-            </article>
-            <article>
-              <h3>The picture stays clear while it plays</h3>
-              <p>
-                The HUD sits above the screen and the lane and pad below it, so nothing covers the video during playback.
-                The PAUSED panel covers the frame on purpose, because a game's pause menu does.
-              </p>
-            </article>
-            <article>
-              <h3>Flat light, hard edges</h3>
-              <p>
-                Nothing glows or blurs. A lit key is a brighter key, and depth comes from a 2 px bevel and a key that moves
-                down when pressed. Gold means live or pressable, red means muted or broken.
-              </p>
-            </article>
-            <article>
-              <h3>Type on the pixel grid</h3>
-              <p>
-                Jersey 15 is drawn on a 15 px grid, so every label is set at 15, 30, 45 or 60 px. At those sizes the pixels
-                land on whole screen pixels and stay sharp.
-              </p>
-            </article>
-            <article>
-              <h3>Calm when asked</h3>
-              <p>
-                With reduced motion on, the snake jumps straight to the time with no wave, lunge or burst, and blinking text
-                holds still. The video still plays, and this page waits for a press before it plays any clip.
-              </p>
-            </article>
-          </div>
-        </Section>
-
-        <Section id="system" n={6} band title="System" lead="Eight colours, one pixel face for the console, and sprites drawn live on canvas.">
+          <h3 className="mini sys-h">Eight colours</h3>
           <ul className="swatches">
             {PALETTE.map((c) => (
               <li key={c.hex}>
@@ -582,83 +936,62 @@ export function Page() {
               </li>
             ))}
           </ul>
-
-          <div className="system-row">
-            <div className="type">
-              <p className="t60">STAGE CLEAR</p>
-              <p className="t30">SCORE 0:45 · GOAL 1:51</p>
-              <p className="t15">A · PLAY   B · MUTE   CC   MENU   PIP   FULL</p>
-              <p className="type-note">Jersey 15 at 60, 30 and 15 px for banners, counters and labels.</p>
-            </div>
-            <div className="sprites">
-              <figure>
-                <div className="sprite-box">
-                  <CoilIdleSnake />
-                </div>
-                <figcaption>
-                  <b>Title snake.</b> Drawn live by the skin's own code, the same one that sits over PRESS START.
-                </figcaption>
-              </figure>
-              <figure>
-                <div className="sprite-box loader-box">
-                  <CoilLoader />
-                </div>
-                <figcaption>
-                  <b>Loader.</b> Chases its own tail on a new path every time it appears.
-                </figcaption>
-              </figure>
-            </div>
-          </div>
-
-          <h3 className="sub">Theme it</h3>
-          <p className="body">
-            HISS keeps the Video.js accent variable for the gold. The rest of the palette lives in <code>--coil-*</code> variables on the skin.
-          </p>
-          <pre className="code">
-            <code>{`.media-skin.coil {
-  --media-accent-color: #ffb21e;  /* A key, pellets, SCORE, focus */
-  --coil-case: #14171b;           /* console body */
-  --coil-bone: #ece8df;           /* text and icons */
-  --coil-red: #ff4d3d;            /* muted, GAME OVER */
-  --coil-key: 46px;               /* key size, 44px on phones */
-}`}</code>
-          </pre>
         </Section>
 
-        <Section id="access" n={7} title="Access" lead="The game sits on top of a normal, accessible Video.js player.">
+        <Section id="access" n={5} tone="case" prev="panel" title="Access" lead="The game sits on top of a player that works for everyone.">
           <div className="access">
+            <figure className="access-clip">
+              <Clip name="keyboard" label="Keyboard only: Tab into the player, then Space, arrows, C and M, with each key shown on screen." className="frame" />
+              <figcaption>No mouse: Tab in, then Space, arrows, C and M. The key caps show what was pressed.</figcaption>
+            </figure>
             <Keys />
-            <ul className="checks">
-              <li>
-                <b>Focus.</b> Tab reaches every control in the order you see it, and each one shows a gold outline.
-              </li>
-              <li>
-                <b>Targets.</b> Every key is at least 44 by 44 px, on phones too.
-              </li>
-              <li>
-                <b>Contrast.</b> All text passes WCAG AA on the console: bone 14.7:1, gold 10.0:1, red 5.5:1.
-              </li>
-              <li>
-                <b>Screen readers.</b> The snake canvas is hidden from them. The seek bar reads the time, STAGE reads the chapter, GAME OVER reads the full error.
-              </li>
-              <li>
-                <b>High contrast.</b> With forced colours or more contrast requested, the snake goes and a plain bordered track and thumb come back.
-              </li>
-              <li>
-                <b>Reduced motion.</b> No wave, lunge, burst or blink. Seeking and progress still show.
-              </li>
-            </ul>
           </div>
+          <ul className="checks">
+            <li>
+              <b>Focus</b> Tab reaches every control in order, each with a gold ring.
+            </li>
+            <li>
+              <b>Targets</b> Every key is at least 44 by 44 px.
+            </li>
+            <li>
+              <b>Contrast</b> Text sits on the solid console: 14.7:1, gold 10.0:1.
+            </li>
+            <li>
+              <b>Screen readers</b> They hear the stock player; the snake is hidden.
+            </li>
+            <li>
+              <b>High contrast</b> The snake steps aside for a plain track and thumb.
+            </li>
+            <li>
+              <b>Reduced motion</b> No wave, lunge or blink. Progress still shows.
+            </li>
+          </ul>
         </Section>
+      </main>
 
-        <Section id="credits" n={8} title="Credits">
+      {/* ---- contact: the end screen ---- */}
+      <footer className="end" id="contact" style={{ '--edge-in': ditherEdge(TONES.case, '#0b0a1e') } as CSSProperties}>
+        <div className="wrap end-inner">
+          <p className="end-kicker">
+            <span className="blink">●</span> PLAYER 2 PRESS START
+          </p>
+          <h2 className="end-banner extrude">CONTINUE?</h2>
+          <p className="end-lead">
+            I’m Ganesh Datta G, a creative technologist and motion designer who builds things like this. If you want to work together, the links are below.
+          </p>
+          <ul className="end-links">
+            {LINKS.map(([label, href], n) => (
+              <li key={label}>
+                <a className="key-link" href={href}>
+                  <span className="key-n" aria-hidden="true">
+                    {n + 1}
+                  </span>
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
           <dl className="credits">
-            <div>
-              <dt>Design and build</dt>
-              <dd>
-                <a href="https://ganeshdg.com">Ganesh Datta G</a>
-              </dd>
-            </div>
             <div>
               <dt>Player</dt>
               <dd>
@@ -668,30 +1001,23 @@ export function Page() {
             <div>
               <dt>Video</dt>
               <dd>
-                Hosted on <a href="https://www.mux.com">Mux</a>, playback ID <code>{PLAYBACK_ID}</code>
+                Showreel 2026 on <a href="https://www.mux.com">Mux</a>
+                <br />
+                <code>{PLAYBACK_ID}</code>
               </dd>
             </div>
             <div>
-              <dt>Clips</dt>
-              <dd>Recorded from the skin playing Cosmic Dawn, the Video.js sample film</dd>
-            </div>
-            <div>
               <dt>Type</dt>
-              <dd>Jersey 15 by Sarah Cadigan-Fried, Atkinson Hyperlegible Next by the Braille Institute</dd>
+              <dd>Jersey 15, Atkinson Hyperlegible Next</dd>
             </div>
             <div>
               <dt>Licence</dt>
               <dd>Apache 2.0</dd>
             </div>
           </dl>
-        </Section>
-      </main>
-
-      <footer className="foot">
-        <span>HISS · made for the Video.js 10 Skins Challenge</span>
-        <a href="./index.html">Open the workbench</a>
-        <a href="#top">Back to the top</a>
+        </div>
       </footer>
+      <Dock />
     </>
   );
 }
