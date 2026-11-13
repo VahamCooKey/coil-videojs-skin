@@ -529,8 +529,26 @@ export function CoilScreenOverlay() {
     ref.current?.dispatchEvent(new CustomEvent('coil-retry', { bubbles: true }));
   };
 
+  // Focus is only recovered for someone already using the player. On page load nothing is focused, and the player
+  // must not take focus (and the page's keys) before anyone has touched it.
+  const engaged = useRef(false);
+  useEffect(() => {
+    const skin = ref.current?.closest<HTMLElement>('.media-skin');
+    if (!skin) return;
+    const engage = () => {
+      engaged.current = true;
+    };
+    skin.addEventListener('focusin', engage);
+    skin.addEventListener('pointerdown', engage);
+    return () => {
+      skin.removeEventListener('focusin', engage);
+      skin.removeEventListener('pointerdown', engage);
+    };
+  }, []);
+
   useEffect(() => {
     const t = window.setTimeout(() => {
+      if (!engaged.current) return;
       const active = document.activeElement;
       if (active && active !== document.body && active.isConnected) return;
       const skin = ref.current?.closest<HTMLElement>('.media-skin');
