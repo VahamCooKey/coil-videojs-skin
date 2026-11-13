@@ -38,3 +38,7 @@ To deploy on every push instead, put the project on GitHub and import it on Verc
 - [Build your own skin](https://videojs.org/docs/framework/react/guides/build-your-own-skin)
 - [Customize skins](https://videojs.org/docs/framework/react/guides/customize-skins)
 - [UI components](https://videojs.org/docs/framework/react/guides/ui-components)
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
