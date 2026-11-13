@@ -1188,3 +1188,10 @@
 .media-skin.coil.coil.coil :is(.coil-lane, .coil-time-slider) {
   touch-action: none;
 }
+
+/* ---- captions stay under the seek preview ---------------------------------------------------------------------
+   Chrome paints the video's caption box as its own layer in the page's stacking order, so it drew over the seek
+   preview that rises from the lane. Giving the screen its own stacking context keeps the captions inside it. */
+.coil .coil-screen {
+  isolation: isolate;
+}
