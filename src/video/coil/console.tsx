@@ -22,7 +22,7 @@ import {
   Tooltip,
 } from '@videojs/react';
 import { usePlayer } from '@videojs/react/video';
-import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from 'react';
 
 import { Button } from '../shared/button';
 import { CaptionsButton } from '../shared/captions-button';
@@ -281,6 +281,92 @@ function useCaptionLift(lift: boolean, anchor: { current: HTMLElement | null }) 
   }, [lift, anchor]);
 }
 
+const HANDHELD_QUERY = '(orientation: landscape) and (max-height: 540px) and (min-width: 560px)';
+
+/** True while the viewport is a phone held sideways (the handheld layout). Follows rotation. */
+function subscribeHandheld(onChange: () => void) {
+  const query = window.matchMedia(HANDHELD_QUERY);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}
+
+/** True while the phone is held sideways; follows rotation. */
+function useHandheld() {
+  return useSyncExternalStore(
+    subscribeHandheld,
+    () => window.matchMedia(HANDHELD_QUERY).matches,
+    () => false,
+  );
+}
+
+/**
+ * Fullscreen on a phone held sideways: the console sits beside the picture, so while the video plays and the console
+ * has hidden itself (the player's own auto-hide), the picture scales up to fit the whole screen. A tap brings the
+ * console back and the picture returns to its place. The fit keeps the whole frame (letterboxed, never cropped).
+ *
+ * It sets `data-immersive` on the skin and the fit as CSS variables; coil-landscape.css does the rest.
+ */
+function useImmersiveFit(on: boolean, anchor: { current: HTMLElement | null }) {
+  useEffect(() => {
+    const skin = anchor.current?.closest<HTMLElement>('.media-skin');
+    const screen = skin?.querySelector<HTMLElement>('.coil-screen');
+    if (!skin || !screen) return;
+    if (!on) {
+      skin.removeAttribute('data-immersive');
+      return;
+    }
+    const fit = () => {
+      // measure the screen in its resting place (no transform), then scale it about its centre to fit the viewport
+      const was = screen.style.transform;
+      screen.style.transform = 'none';
+      const box = screen.getBoundingClientRect();
+      const view = skin.getBoundingClientRect();
+      screen.style.transform = was;
+      if (!box.width || !box.height) return;
+      const scale = Math.min(view.width / box.width, view.height / box.height);
+      skin.style.setProperty('--coil-fit-s', String(scale));
+      skin.style.setProperty('--coil-fit-x', `${view.left + view.width / 2 - (box.left + box.width / 2)}px`);
+      skin.style.setProperty('--coil-fit-y', `${view.top + view.height / 2 - (box.top + box.height / 2)}px`);
+    };
+    fit();
+    skin.setAttribute('data-immersive', '');
+    window.addEventListener('resize', fit);
+    return () => {
+      window.removeEventListener('resize', fit);
+      skin.removeAttribute('data-immersive');
+    };
+  }, [on, anchor]);
+}
+
+/**
+ * While the picture is zoomed in, the first tap only brings the console back. The player shows the console as the
+ * finger goes down, so without this the same tap would also land on the play key or the picture (play/pause) that
+ * is now under it.
+ */
+function useWakeTap(active: boolean, anchor: { current: HTMLElement | null }) {
+  useEffect(() => {
+    const skin = anchor.current?.closest<HTMLElement>('.media-skin');
+    if (!skin || !active) return;
+    let swallow = false;
+    const down = () => {
+      // zoomed in and showing nothing to press (a key with keyboard focus keeps the console up)
+      swallow = skin.matches('[data-immersive]:not(:has(.coil-console :focus-visible))');
+    };
+    const click = (event: Event) => {
+      if (!swallow) return;
+      swallow = false;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    skin.addEventListener('pointerdown', down, true);
+    skin.addEventListener('click', click, true);
+    return () => {
+      skin.removeEventListener('pointerdown', down, true);
+      skin.removeEventListener('click', click, true);
+    };
+  }, [active, anchor]);
+}
+
 /** Restart the press flash on the key that was just activated. */
 function flashKey(event: MouseEvent<HTMLDivElement>) {
   const key = (event.target as Element).closest('button');
@@ -315,8 +401,10 @@ export function CoilConsole({ renderThumbnail }: ThumbnailSlot = {}) {
   }, []);
   // CC and PiP only know whether they are available once the video has loaded; until then their slots are kept
   const ready = usePlayer((s) => Number.isFinite(s.duration) && s.duration > 0);
-  const handheld = typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-height: 540px) and (min-width: 560px)').matches;
+  const handheld = useHandheld();
   useCaptionLift(fullscreen && shown && !handheld, padRef);
+  useImmersiveFit(fullscreen && handheld && !shown && !paused && !ended, padRef);
+  useWakeTap(fullscreen && handheld, padRef);
   const playLabel = ended ? 'A · AGAIN' : paused ? 'A · PLAY' : 'A · PAUSE';
 
   return (
@@ -449,7 +537,6 @@ function VolumeMeter() {
 
 /** What the screen says on top of the video: title screen, paused, loading, stage clear, game over, volume meter. */
 export function CoilScreenOverlay() {
-  const store = usePlayer();
   const paused = usePlayer((s) => s.paused);
   const ended = usePlayer((s) => s.ended);
   const stalled = usePlayer((s) => s.waiting);

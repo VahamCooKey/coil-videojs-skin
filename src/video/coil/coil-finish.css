@@ -497,7 +497,7 @@
 
 /* leave a margin above and below on a short desktop window */
 .media-skin.coil.coil.coil .coil-screen {
-  max-height: max(200px, calc(100dvh - 400px));
+  max-height: max(200px, calc(100dvh - var(--coil-reserve, 400px)));
 }
 .media-skin.coil.coil.coil:fullscreen .coil-screen {
   max-height: none;
@@ -1194,4 +1194,30 @@
    preview that rises from the lane. Giving the screen its own stacking context keeps the captions inside it. */
 .coil .coil-screen {
   isolation: isolate;
+}
+
+/* ---- handheld: the A and B legends sit clear of the key's shadow ------------------------------------------------
+   The focused legend is a gold plate. With a 3px gap it ran into the key's drop shadow and looked clipped. */
+@media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
+  .media-skin.coil.coil.coil .coil-ab > .coil-key > .coil-key-label {
+    margin-top: 7px;
+  }
+}
+
+/* ---- menus: the speed list (seven rows) scrolls. The base skin's 224px cap cut it exactly at a row edge, so it read as
+   a short list of three. At 312px the fifth row shows only in part, a cue that the list goes on; the shade and the gold
+   scrollbar say the same. Where space is shorter the popup still shrinks to the available height. */
+.media-skin.coil.coil.coil .media-menu-popup {
+  max-height: min(var(--media-menu-available-height, 312px), 312px);
+}
+
+/* ---- a short, wide desktop window (a 1366x768 laptop): the picture loses height to keep the pad on screen, so a
+   full-width console left the video pillarboxed in a letterbox slot. The console narrows instead, to the width a
+   16:9 picture of that height needs, and never below 680px (the desktop size). Fullscreen and the sideways-phone
+   layout keep their own sizing. */
+@media not ((orientation: landscape) and (max-height: 540px) and (min-width: 560px)) {
+  .media-skin.coil.coil.coil:not(:fullscreen) {
+    max-width: max(680px, calc((100dvh - var(--coil-reserve, 400px)) * 16 / 9 + 24px));
+    margin-inline: auto;
+  }
 }
